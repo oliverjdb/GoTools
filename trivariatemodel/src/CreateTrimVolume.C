@@ -64,7 +64,7 @@ using namespace Go;
 
 //==========================================================================
 CreateTrimVolume::CreateTrimVolume(shared_ptr<SurfaceModel> model,
-				   int material)
+				   vector<int> material)
 //==========================================================================
 {
   model_ = model;
@@ -1320,7 +1320,7 @@ CreateTrimVolume::createTrimVolume(shared_ptr<ParamVolume> vol,
 
   // Create ftVolume
   trimvol = shared_ptr<ftVolume>(new ftVolume(vol, model_));
-  if (material_ >= 0)
+  if (material_.size() > 0)
     trimvol->setMaterial(material_);
   return trimvol;
 }

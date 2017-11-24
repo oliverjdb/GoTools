@@ -183,7 +183,7 @@ int main( int argc, char* argv[] )
 						  bend, faces));
 
   // Create solid and set material flag to 1
-  shared_ptr<Body> solid(new Body(shell, 1));
+  shared_ptr<Body> solid(new Body(shell, vector<int>(1,1)));
   
   // Write solid to file
   std::ofstream out_file("solid.g22");
@@ -200,8 +200,9 @@ int main( int argc, char* argv[] )
   // Fetch information and check that it is the same geometry
   if (solid2->hasMaterialInfo())
     {
-      int material = solid2->getMaterial();
-      std::cout << "Material flag: " << material << std::endl;
+      vector<int> material = solid2->getMaterial();
+      std::cout << "Material flags: "; 
+      for (size_t ix=0;ix!=material.size(); ++ix) std::cout << material[ix] << " ";   
     }
   else
     std::cout << "The solid contains no material information" << std::endl;

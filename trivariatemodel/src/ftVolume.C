@@ -10153,6 +10153,79 @@ void ftVolume::simplifyOuterBdShell(int degree)
 }
 
 
+//===========================================================================
+std::vector<double> ftVolume::evaluateMaterialDistribution(double upar, double vpar, double wpar) const
+//===========================================================================
+{
+  Point pt;
+  if (mat_dist_.get() != NULL) {
+    mat_dist_->point(pt,upar,vpar,wpar);
+    pt.normalize(); // should be normalized by definition
+    return std::vector<double>(pt.begin(),pt.end());
+  }
+  else { 
+    // Material distribution not defined, assuming uniform...
+    Body::evaluateMaterialDistribution(upar,vpar,wpar);
+  }
+}
+
+
+//===========================================================================
+void ftVolume::setMaterialDistribution(std::shared_ptr<SplineVolume> mat_dist) 
+//===========================================================================
+{
+  
+  // Check that the parameter domains of the geometry 
+  // and material distribution match
+  if (mat_dist->rational()) 
+    THROW("Rational material field distributions are not supported");
+  if (!(vol_->parameterSpan() == mat_dist->parameterSpan())) {
+    MESSAGE("Warning: The material/geometry parameter domains don't match");
+    auto ps = vol_->parameterSpan();
+    mat_dist->setParameterDomain(ps[0],ps[1],ps[2],ps[3],ps[4],ps[5]);
+  }
+
+  // Check that the requirements for material distributions are met.
+  int num_mat = mat_dist->dimension();
+  int count = 0;
+
+  // Normalize all coefficients
+  for (std::vector<double>::iterator coef_it = mat_dist->coefs_begin();
+                          coef_it != mat_dist->coefs_end();  ) {
+    std::vector<double>::iterator tmp_it = coef_it;
+
+    // Compute normalization factor
+    double norm_factor = 0.0;
+    for (int ix = 0; ix < num_mat; ++ix, tmp_it++) {
+       if(*tmp_it < 0.0) 
+         THROW("Non-negative material proportions. Antimatter not yet supported");
+      norm_factor += *tmp_it;
+    }
+ 
+    // Reset iterator in case changes are needed
+    tmp_it = coef_it;
+    if (std::fabs(norm_factor) < 1.0e-8) { 
+      MESSAGE("There is a material coefficient very close to zero. Changing coefficient."); 
+      for (int ix = 0; ix < num_mat; ++ix, tmp_it++) (*tmp_it) = 1.0/num_mat;
+    }
+    if (std::fabs(norm_factor-1.0) > 1.0e-8 ) { 
+      MESSAGE("There are non-normalized material coefficients. They will be normalized now.");
+      for (int ix = 0; ix < num_mat; ++ix, tmp_it++)      
+        (*tmp_it) /= norm_factor;
+    }
+    coef_it += num_mat; 
+  }
+
+  // Check that the number of material_ids matches the dimension of the coefficeints
+  if(material_id_.size() != num_mat) 
+    THROW("Mismatch between material ids and material distribution");  
+ 
+  if (mat_dist_ != NULL) MESSAGE("Overwriting existing material distribution");
+  
+  // Everything should be good now, so we can go ahead and set the material distribution
+  mat_dist_ = mat_dist;
+
+}
 
  //===========================================================================
 bool ftVolume::checkBodyTopology()

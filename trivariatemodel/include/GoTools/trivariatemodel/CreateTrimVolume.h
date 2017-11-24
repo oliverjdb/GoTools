@@ -73,7 +73,7 @@ namespace Go
     /// model : The trimming shell / outer shell of the brep solid
     /// material: Eventual material specification associated with the brep solid
     ///           that should be maintained in the trivariate model
-    CreateTrimVolume(shared_ptr<SurfaceModel> model, int material=-1);
+    CreateTrimVolume(shared_ptr<SurfaceModel> model, vector<int> material=vector<int>());
 
     /// Destructor
     ~CreateTrimVolume();
@@ -83,7 +83,7 @@ namespace Go
 
   private:
     shared_ptr<SurfaceModel> model_;
-    int material_;
+    vector<int> material_;
     BoundingBox bigbox_;
 
     vector<vector<shared_ptr<ftSurface> > > face_grp_;

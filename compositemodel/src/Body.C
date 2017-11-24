@@ -50,7 +50,7 @@ namespace Go
 
 //---------------------------------------------------------------------------
 Body::Body()
-  : material_id_(-1), toptol_(0.0, 0.0, 0.0, 0.0)
+  : toptol_(0.0, 0.0, 0.0, 0.0)
 //---------------------------------------------------------------------------
 {
 }
@@ -90,7 +90,7 @@ Body::Body()
 //     addBodyPointers();
 // }
 
-  Body::Body(vector<shared_ptr<SurfaceModel> >& shells, int material_id)
+  Body::Body(vector<shared_ptr<SurfaceModel> >& shells, const vector<int>& material_id)
     : shells_(shells), material_id_(material_id), toptol_(0.0, 0.0, 0.0, 0.0)
 //---------------------------------------------------------------------------
 {
@@ -109,14 +109,15 @@ Body::Body()
 }
 
 //---------------------------------------------------------------------------
-  Body::Body(shared_ptr<SurfaceModel>  shell, int material_id)
-    : material_id_(material_id), toptol_(shell->getTolerances())
+  Body::Body(shared_ptr<SurfaceModel>  shell, const vector<int>& material_id)
+    : material_id_(material_id), toptol_(shell->getTolerances()) 
 //---------------------------------------------------------------------------
 {
     shells_.push_back(shell);
     addBodyPointers();
 }
 
+//---------------------------------------------------------------------------
   Body::Body(shared_ptr<Body> body)
     : shells_(body->getAllShells()), material_id_(body->getMaterial()), 
       toptol_(0.0, 0.0, 0.0, 0.0)

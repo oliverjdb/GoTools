@@ -159,8 +159,22 @@ void VolumeModelFileHandler::writeVolume(const shared_ptr<ftVolume>& body,
   vector<shared_ptr<SurfaceModel> > sfmod;
   os << "\n" << indent_ << "<Volume ID=\"" << body_id << "\">\n";
   os << indent_ << indent_ << "<Geovolume>" << volume_id << "</Geovolume>\n";
-  if (body->getMaterial() >= 0)
-    os << indent_ << indent_ << "<Material>" << body->getMaterial() <<  "</Material>\n";    
+  if (body->hasMaterialInfo()) {
+    os << indent_ << indent_ << "<Material>\n"; 
+    os << indent_ << indent_ << indent_ << "<MaterialIDs>";
+    vector<int> mats = body->getMaterial();
+    for (size_t ix=0;ix!=mats.size(); ++ix) os << mats[ix] << " ";
+    os << "</MaterialIDs>\n";
+  if (body->isMaterialGraded()) {
+    shared_ptr<ParamVolume> mat_dist = body->getMaterialDistribution();
+    os << indent_ << indent_ << indent_ << "<MaterialDistribution>\n";
+    mat_dist->writeStandardHeader(os);
+    mat_dist->write(os);
+    os << indent_ << indent_ << indent_ << "</MaterialDistribution>\n";
+  }
+    os << indent_ << indent_ <<  "</Material>\n";    
+  }
+ 
   os << indent_ << indent_ << "<Shells>" << nmb_shells;
   for (int ki = 0; ki < nmb_shells; ++ki)
     {

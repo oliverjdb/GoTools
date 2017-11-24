@@ -379,16 +379,43 @@ namespace Go
 
     /// Debug
     bool checkBodyTopology();
+   
+    // Determine material distribution at (upar,vpar,wpar)
+    std::vector<double> evaluateMaterialDistribution(double upar, double vpar, double wpar) const;
 
+    std::shared_ptr<ParamVolume> getMaterialDistribution() 
+    {
+      return mat_dist_;
+    }
 
-  private:
+    // Sets material distribution to user defined SplineVolume
+    // This could be generalized to a ParamVolume if needed
+    void setMaterialDistribution(std::shared_ptr<SplineVolume> mat_dist);
+
+    // Create a spline material distribution with the following properties: 
+    //   - it has the same parameter domain as the geometry volume
+    //   - it has coeffcients of dimension material_id_.size()
+    //   - it is initialized as an average of the number of materials.
+    void createMaterialDistribution();
+    
+    bool isMaterialGraded() const 
+    {
+      // Check that mat_dist_ exists
+      return (mat_dist_.get() != NULL);
+    }
+
+   private:
      /// Geometric description of volume
     shared_ptr<ParamVolume> vol_;
     int id_;
 
     std::vector<shared_ptr<ftEdge> > missing_edges_;  // Private storage
 
-    /// Private method to create the boundary shell
+    // Description of material distribution
+    shared_ptr<ParamVolume> mat_dist_;
+ 
+
+   /// Private method to create the boundary shell
     shared_ptr<SurfaceModel> 
       createBoundaryShell(double eps, double tang_eps);
 

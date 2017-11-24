@@ -109,7 +109,7 @@ int main( int argc, char* argv[] )
       }
 
       // Create Body
-      shared_ptr<Body> body(new Body(model2, 1));
+      shared_ptr<Body> body(new Body(model2, vector<int>(1,1)));
       std::ofstream out_file3("model.g22");
       CompositeModelFileHandler filehandler;
       filehandler.writeStart(out_file3);
