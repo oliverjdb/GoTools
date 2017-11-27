@@ -1,0 +1,14 @@
+* Testing
+- [X] Test 1D function with a plain interval
+- [X] Test 1D function with a real spline curve
+* distribute_points_1D
+- [ ] replace brute force implementation when computing the objective function
+* distribute_points_2D
+- [ ] implement brute force version
+- [ ] implement efficient version
+* triangulate_points_2D
+- [ ] implement
+* Introduce use of sparse matrices
+* Questions
+- why does it matter that points are sorted according to size in the update function?
+- why does the second update function not perform better?

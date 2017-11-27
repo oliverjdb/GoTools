@@ -1,0 +1,9 @@
+* Creation of tetrahedra
+- [ ] Speed up the algorithm
+- [ ] Handle cases where tetrahedra could not be found
+* Integrate with GoTools
+- [ ] write function to tesselate an ftVolume
+* Speed up optimization proces
+- [ ] Try to couple with ipopt to see if it runs faster
+
+* LOG

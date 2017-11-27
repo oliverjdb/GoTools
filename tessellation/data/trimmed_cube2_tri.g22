@@ -1,0 +1,1275 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<g22>
+
+  <HEADER>
+    <VERSION>1.0</VERSION>
+    <DESCRIPTION>
+      Trimmed volume
+    </DESCRIPTION>
+  </HEADER>
+
+  <Volume ID="-1">
+    <Geovolume>0</Geovolume>
+    <Material>1</Material>
+    <Shells>1 0</Shells>
+   </Volume>
+
+  <Shell ID="0">
+    <Closed>1</Closed>
+    <Faces>7 0 1 2 3 4 5 6 </Faces>
+    <Approxtol>1e-06</Approxtol>
+    <Gap>1e-06</Gap>
+    <Neighbour>0.001</Neighbour>
+    <Kink>0.01</Kink>
+    <Bend>0.05</Bend>
+  </Shell>
+
+  <Face ID="1">
+    <Surface>1</Surface>
+    <Loops>1 0</Loops>
+    <Boundarycondition>2 3</Boundarycondition>
+  </Face>
+
+  <Face ID="2">
+    <Surface>2</Surface>
+    <Loops>1 1</Loops>
+  </Face>
+
+  <Face ID="0">
+    <Surface>3</Surface>
+    <Loops>1 2</Loops>
+    <Boundarycondition>0 1</Boundarycondition>
+  </Face>
+
+  <Face ID="3">
+    <Surface>4</Surface>
+    <Loops>1 3</Loops>
+  </Face>
+
+  <Face ID="4">
+    <Surface>5</Surface>
+    <Loops>1 4</Loops>
+    <Boundarycondition>4 5</Boundarycondition>
+  </Face>
+
+  <Face ID="5">
+    <Surface>6</Surface>
+    <Loops>1 5</Loops>
+  </Face>
+
+  <Face ID="6">
+    <Surface>7</Surface>
+    <Loops>1 6</Loops>
+    <Boundarycondition>0 1</Boundarycondition>
+  </Face>
+
+  <Loop ID="1">
+    <Edges>5 0 1 2 3 4</Edges>
+    <Spacetol>1e-06</Spacetol>
+  </Loop>
+
+  <Loop ID="0">
+    <Edges>5 5 6 7 8 9</Edges>
+    <Spacetol>1e-06</Spacetol>
+  </Loop>
+
+  <Loop ID="2">
+    <Edges>4 10 11 12 13</Edges>
+    <Spacetol>1e-06</Spacetol>
+  </Loop>
+
+  <Loop ID="6">
+    <Edges>3 14 15 16</Edges>
+    <Spacetol>1e-06</Spacetol>
+  </Loop>
+
+  <Loop ID="5">
+    <Edges>4 17 18 19 20</Edges>
+    <Spacetol>1e-06</Spacetol>
+  </Loop>
+
+  <Loop ID="4">
+    <Edges>5 21 22 23 24 25</Edges>
+    <Spacetol>1e-06</Spacetol>
+  </Loop>
+
+  <Loop ID="3">
+    <Edges>4 26 27 28 29</Edges>
+    <Spacetol>1e-06</Spacetol>
+  </Loop>
+
+  <Edge ID="2">
+    <Parametercurve>8</Parametercurve>
+    <Spacecurve>9</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>0</Startvertex>
+    <Endvertex>1</Endvertex>
+    <Twin>29</Twin>
+  </Edge>
+
+  <Edge ID="3">
+    <Parametercurve>10</Parametercurve>
+    <Spacecurve>11</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>1</Startvertex>
+    <Endvertex>2</Endvertex>
+    <Twin>10</Twin>
+  </Edge>
+
+  <Edge ID="4">
+    <Parametercurve>12</Parametercurve>
+    <Spacecurve>13</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>2</Startvertex>
+    <Endvertex>3</Endvertex>
+    <Twin>6</Twin>
+  </Edge>
+
+  <Edge ID="13">
+    <Parametercurve>14</Parametercurve>
+    <Spacecurve>15</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>4</Startvertex>
+    <Endvertex>2</Endvertex>
+    <Twin>7</Twin>
+  </Edge>
+
+  <Edge ID="0">
+    <Parametercurve>16</Parametercurve>
+    <Spacecurve>17</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>3</Startvertex>
+    <Endvertex>5</Endvertex>
+    <Twin>14</Twin>
+  </Edge>
+
+  <Edge ID="1">
+    <Parametercurve>18</Parametercurve>
+    <Spacecurve>19</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>5</Startvertex>
+    <Endvertex>0</Endvertex>
+    <Twin>25</Twin>
+  </Edge>
+
+  <Edge ID="10">
+    <Parametercurve>20</Parametercurve>
+    <Spacecurve>21</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>2</Startvertex>
+    <Endvertex>1</Endvertex>
+    <Twin>3</Twin>
+  </Edge>
+
+  <Edge ID="11">
+    <Parametercurve>22</Parametercurve>
+    <Spacecurve>23</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>1</Startvertex>
+    <Endvertex>6</Endvertex>
+    <Twin>28</Twin>
+  </Edge>
+
+  <Edge ID="12">
+    <Parametercurve>24</Parametercurve>
+    <Spacecurve>25</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>6</Startvertex>
+    <Endvertex>4</Endvertex>
+    <Twin>18</Twin>
+  </Edge>
+
+  <Edge ID="5">
+    <Parametercurve>26</Parametercurve>
+    <Spacecurve>27</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>7</Startvertex>
+    <Endvertex>3</Endvertex>
+    <Twin>15</Twin>
+  </Edge>
+
+  <Edge ID="6">
+    <Parametercurve>28</Parametercurve>
+    <Spacecurve>29</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>3</Startvertex>
+    <Endvertex>2</Endvertex>
+    <Twin>4</Twin>
+  </Edge>
+
+  <Edge ID="7">
+    <Parametercurve>30</Parametercurve>
+    <Spacecurve>31</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>2</Startvertex>
+    <Endvertex>4</Endvertex>
+    <Twin>13</Twin>
+  </Edge>
+
+  <Edge ID="8">
+    <Parametercurve>32</Parametercurve>
+    <Spacecurve>33</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>4</Startvertex>
+    <Endvertex>8</Endvertex>
+    <Twin>17</Twin>
+  </Edge>
+
+  <Edge ID="9">
+    <Parametercurve>34</Parametercurve>
+    <Spacecurve>35</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>8</Startvertex>
+    <Endvertex>7</Endvertex>
+    <Twin>22</Twin>
+  </Edge>
+
+  <Edge ID="17">
+    <Parametercurve>36</Parametercurve>
+    <Spacecurve>37</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>8</Startvertex>
+    <Endvertex>4</Endvertex>
+    <Twin>8</Twin>
+  </Edge>
+
+  <Edge ID="18">
+    <Parametercurve>38</Parametercurve>
+    <Spacecurve>39</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>4</Startvertex>
+    <Endvertex>6</Endvertex>
+    <Twin>12</Twin>
+  </Edge>
+
+  <Edge ID="19">
+    <Parametercurve>40</Parametercurve>
+    <Spacecurve>41</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>6</Startvertex>
+    <Endvertex>9</Endvertex>
+    <Twin>27</Twin>
+  </Edge>
+
+  <Edge ID="20">
+    <Parametercurve>42</Parametercurve>
+    <Spacecurve>43</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>9</Startvertex>
+    <Endvertex>8</Endvertex>
+    <Twin>23</Twin>
+  </Edge>
+
+  <Edge ID="21">
+    <Parametercurve>44</Parametercurve>
+    <Spacecurve>45</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>5</Startvertex>
+    <Endvertex>7</Endvertex>
+    <Twin>16</Twin>
+  </Edge>
+
+  <Edge ID="22">
+    <Parametercurve>46</Parametercurve>
+    <Spacecurve>47</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>7</Startvertex>
+    <Endvertex>8</Endvertex>
+    <Twin>9</Twin>
+  </Edge>
+
+  <Edge ID="23">
+    <Parametercurve>48</Parametercurve>
+    <Spacecurve>49</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>8</Startvertex>
+    <Endvertex>9</Endvertex>
+    <Twin>20</Twin>
+  </Edge>
+
+  <Edge ID="24">
+    <Parametercurve>50</Parametercurve>
+    <Spacecurve>51</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>9</Startvertex>
+    <Endvertex>0</Endvertex>
+    <Twin>26</Twin>
+  </Edge>
+
+  <Edge ID="25">
+    <Parametercurve>52</Parametercurve>
+    <Spacecurve>53</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>0</Startvertex>
+    <Endvertex>5</Endvertex>
+    <Twin>1</Twin>
+  </Edge>
+
+  <Edge ID="26">
+    <Parametercurve>54</Parametercurve>
+    <Spacecurve>55</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>0</Startvertex>
+    <Endvertex>9</Endvertex>
+    <Twin>24</Twin>
+  </Edge>
+
+  <Edge ID="27">
+    <Parametercurve>56</Parametercurve>
+    <Spacecurve>57</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>9</Startvertex>
+    <Endvertex>6</Endvertex>
+    <Twin>19</Twin>
+  </Edge>
+
+  <Edge ID="28">
+    <Parametercurve>58</Parametercurve>
+    <Spacecurve>59</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>6</Startvertex>
+    <Endvertex>1</Endvertex>
+    <Twin>11</Twin>
+  </Edge>
+
+  <Edge ID="29">
+    <Parametercurve>60</Parametercurve>
+    <Spacecurve>61</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>1</Startvertex>
+    <Endvertex>0</Endvertex>
+    <Twin>2</Twin>
+  </Edge>
+
+  <Edge ID="14">
+    <Parametercurve>62</Parametercurve>
+    <Spacecurve>63</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>5</Startvertex>
+    <Endvertex>3</Endvertex>
+    <Twin>0</Twin>
+  </Edge>
+
+  <Edge ID="15">
+    <Parametercurve>64</Parametercurve>
+    <Spacecurve>65</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>3</Startvertex>
+    <Endvertex>7</Endvertex>
+    <Twin>5</Twin>
+  </Edge>
+
+  <Edge ID="16">
+    <Parametercurve>66</Parametercurve>
+    <Spacecurve>67</Spacecurve>
+    <Preferparam>0</Preferparam>
+    <Surfacecurveinfo>0 0 0 -1 1</Surfacecurveinfo>
+    <Reversed>0</Reversed>
+    <Startvertex>7</Startvertex>
+    <Endvertex>5</Endvertex>
+    <Twin>21</Twin>
+  </Edge>
+
+  <Node ID="2">
+    <Loc>-0.04 -0.04 0.04</Loc>
+  </Node>
+
+  <Node ID="3">
+    <Loc>-0.04 -0.04 0.0238202</Loc>
+  </Node>
+
+  <Node ID="8">
+    <Loc>-0.04 0.04 -0.04</Loc>
+  </Node>
+
+  <Node ID="5">
+    <Loc>0.00733333 -0.04 -0.04</Loc>
+  </Node>
+
+  <Node ID="4">
+    <Loc>-0.04 0.04 0.04</Loc>
+  </Node>
+
+  <Node ID="0">
+    <Loc>0.04 -0.04 -0.04</Loc>
+  </Node>
+
+  <Node ID="9">
+    <Loc>0.04 0.04 -0.04</Loc>
+  </Node>
+
+  <Node ID="6">
+    <Loc>0.04 0.04 0.04</Loc>
+  </Node>
+
+  <Node ID="7">
+    <Loc>-0.04 0.0357333 -0.04</Loc>
+  </Node>
+
+  <Node ID="1">
+    <Loc>0.04 -0.04 0.04</Loc>
+  </Node>
+
+  <GeomObject ID="53">
+120 1 0 0
+3
+0.0473333335531185 -0.04 -0.04
+1 0 0
+1
+-0.04 -0.00733333355311849
+1
+  </GeomObject>
+
+  <GeomObject ID="49">
+120 1 0 0
+3
+0 0.04 -0.04
+-1 0 0
+1
+-0.04 0.04
+1
+  </GeomObject>
+
+  <GeomObject ID="0">
+700 1 0 0
+3 0
+2 2
+0 0 0.08 0.08
+2 2
+0 0 0.08 0.08
+2 2
+0 0 0.08 0.08
+0.04 0.04 -0.04
+0.04 0.04 0.04
+-0.04 0.04 -0.04
+-0.04 0.04 0.04
+0.04 -0.04 -0.04
+0.04 -0.04 0.04
+-0.04 -0.04 -0.04
+-0.04 -0.04 0.04
+
+  </GeomObject>
+
+  <GeomObject ID="3">
+211 1 0 0
+0 0 200
+3 0
+2 2
+0 0 1 1
+2 2
+0 0 1 1
+-0.04 -0.04 0.04
+0.04 -0.04 0.04
+-0.04 0.04 0.04
+0.04 0.04 0.04
+
+1 0.08 1 0 1
+  </GeomObject>
+
+  <GeomObject ID="1">
+211 1 0 0
+0 0 200
+3 0
+2 2
+0 0 1 1
+2 2
+0 0 1 1
+-0.04 -0.04 -0.04
+-0.04 -0.04 0.04
+-0.04 0.04 -0.04
+-0.04 0.04 0.04
+
+2 0.08 3 0 0
+  </GeomObject>
+
+  <GeomObject ID="2">
+211 1 0 0
+0 0 200
+3 0
+2 2
+0 0 1 1
+2 2
+0 0 1 1
+-0.04 -0.04 0.04
+-0.04 -0.04 -0.04
+0.04 -0.04 0.04
+0.04 -0.04 -0.04
+
+3 0.08 5 0 0
+  </GeomObject>
+
+  <GeomObject ID="6">
+211 1 0 0
+0 0 200
+3 0
+2 2
+0 0 1 1
+2 2
+0 0 1 1
+-0.04 0.04 -0.04
+-0.04 0.04 0.04
+0.04 0.04 -0.04
+0.04 0.04 0.04
+
+3 0 4 0 0
+  </GeomObject>
+
+  <GeomObject ID="5">
+211 1 0 0
+0 0 200
+3 0
+2 2
+0 0 1 1
+2 2
+0 0 1 1
+0.04 -0.04 -0.04
+-0.04 -0.04 -0.04
+0.04 0.04 -0.04
+-0.04 0.04 -0.04
+
+1 0 0 0 0
+  </GeomObject>
+
+  <GeomObject ID="7">
+211 1 0 0
+0 0 200
+3 0
+2 2
+-100000000 -100000000 100000000 100000000
+2 2
+-100000000 -100000000 100000000 100000000
+98146505.818966 -56583198.0213538 -84649897.217465
+7853282.14166996 -113016462.819664 84649897.1774651
+-7853282.18166997 113016462.779664 -84649897.217465
+-98146505.858966 56583197.9813538 84649897.1774651
+
+0 0 -1 0 0
+  </GeomObject>
+
+  <GeomObject ID="17">
+100 1 0 0
+3 0
+4 4
+0 0 0 0 0.0794573153289145 0.0794573153289145 0.0794573153289145 0.0794573153289145
+-0.0399999985843896 -0.04 0.0238202250049858
+-0.0242222229324103 -0.0399999986216427 0.00254681772284249
+-0.00844444449794081 -0.0400000004842877 -0.0187265885455315
+0.00733333256964883 -0.04 -0.0399999958276749
+
+  </GeomObject>
+
+  <GeomObject ID="15">
+120 1 0 0
+3
+-0.04 0 0.04
+0 1 0
+1
+-0.04 0.04
+1
+  </GeomObject>
+
+  <GeomObject ID="24">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+1 1
+0.666666666666667 1
+0.333333333333333 1
+0 1
+
+  </GeomObject>
+
+  <GeomObject ID="13">
+120 1 0 0
+3
+-0.04 -0.04 0.0238202250049858
+0 0 1
+1
+0 0.0161797749950142
+1
+  </GeomObject>
+
+  <GeomObject ID="14">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+0 1
+0 0.666666666666667
+0 0.333333333333333
+0 0
+
+  </GeomObject>
+
+  <GeomObject ID="35">
+120 1 0 0
+3
+-0.04 0 -0.04
+0 -1 0
+1
+-0.04 -0.0357333335161209
+0
+  </GeomObject>
+
+  <GeomObject ID="18">
+100 1 0 0
+2 0
+4 4
+0.00733333256964883 0.00733333256964883 0.00733333256964883 0.00733333256964883 0.04 0.04 0.04 0.04
+1 0.59166665712061
+1 0.72777777141374
+1 0.86388888570687
+1 1
+
+  </GeomObject>
+
+  <GeomObject ID="29">
+120 1 0 0
+3
+-0.04 -0.04 -0.04
+0 0 1
+1
+0.0638202269136621 0.08
+0
+  </GeomObject>
+
+  <GeomObject ID="16">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.0794573153289145 0.0794573153289145 0.0794573153289145 0.0794573153289145
+0.202247187437678 1.76951294086999e-08
+0.468164809606968 0.19722223595716
+0.73408240234333 0.394444460853315
+0.999999947845936 0.59166665712061
+
+  </GeomObject>
+
+  <GeomObject ID="34">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 -0.0357333335161209 -0.0357333335161209 -0.0357333335161209 -0.0357333335161209
+0 1
+0 0.982222222983837
+0 0.964444445967674
+0 0.946666668951511
+
+  </GeomObject>
+
+  <GeomObject ID="28">
+100 1 0 0
+2 0
+4 4
+0.0638202269136621 0.0638202269136621 0.0638202269136621 0.0638202269136621 0.08 0.08 0.08 0.08
+0.797752836420777 0
+0.865168557613851 0
+0.932584278806926 0
+1 0
+
+  </GeomObject>
+
+  <GeomObject ID="23">
+120 1 0 0
+3
+0.04 0 0.04
+0 -1 0
+1
+-0.04 0.04
+1
+  </GeomObject>
+
+  <GeomObject ID="27">
+100 1 0 0
+3 0
+4 4
+0 0 0 0 0.0990381692076425 0.0990381692076425 0.0990381692076425 0.0990381692076425
+-0.04 0.0357333335161209 -0.0399999960120467
+-0.0399999976903203 0.0104888889442425 -0.0187265916529112
+-0.0400000014156103 -0.0147555540497641 0.00254681856658519
+-0.04 -0.0399999986216508 0.0238202269136621
+
+  </GeomObject>
+
+  <GeomObject ID="25">
+120 1 0 0
+3
+0 0.04 0.04
+1 0 0
+1
+-0.04 0.04
+1
+  </GeomObject>
+
+  <GeomObject ID="12">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.0161797749950142 0.0161797749950142 0.0161797749950142 0.0161797749950142
+0 0
+0.0674157291458927 0
+0.134831458291785 0
+0.202247187437678 0
+
+  </GeomObject>
+
+  <GeomObject ID="19">
+120 1 0 0
+3
+0 -0.04 -0.04
+1 0 0
+1
+0.00733333256964883 0.04
+0
+  </GeomObject>
+
+  <GeomObject ID="36">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.08 0.08 0.08 0.08
+0 0
+0.333333333333333 0
+0.666666666666667 0
+1 0
+
+  </GeomObject>
+
+  <GeomObject ID="37">
+120 1 0 0
+3
+-0.04 0.04 -0.04
+0 0 1
+1
+0 0.08
+0
+  </GeomObject>
+
+  <GeomObject ID="38">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+1 0
+1 0.333333333333333
+1 0.666666666666667
+1 1
+
+  </GeomObject>
+
+  <GeomObject ID="39">
+120 1 0 0
+3
+0 0.04 0.04
+1 0 0
+1
+-0.04 0.04
+0
+  </GeomObject>
+
+  <GeomObject ID="40">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.08 0.08 0.08 0.08
+1 1
+0.666666666666667 1
+0.333333333333333 1
+0 1
+
+  </GeomObject>
+
+  <GeomObject ID="41">
+120 1 0 0
+3
+0.04 0.04 -0.04
+0 0 1
+1
+0 0.08
+1
+  </GeomObject>
+
+  <GeomObject ID="42">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+0 1
+0 0.666666666666667
+0 0.333333333333333
+0 0
+
+  </GeomObject>
+
+  <GeomObject ID="43">
+120 1 0 0
+3
+0 0.04 -0.04
+-1 0 0
+1
+-0.04 0.04
+0
+  </GeomObject>
+
+  <GeomObject ID="63">
+100 1 0 0
+3 0
+4 4
+0 0 0 0 0.0794573177052652 0.0794573177052652 0.0794573177052652 0.0794573177052652
+0.00733332335948944 -0.0400000065565109 -0.0399999916553497
+-0.00844444496981091 -0.0400000004842877 -0.0187265879093022
+-0.0242222238761506 -0.0399999986216426 0.00254681899530114
+-0.0400000028312206 -0.0399999916553497 0.0238202288746834
+
+  </GeomObject>
+
+  <GeomObject ID="45">
+100 1 0 0
+3 0
+4 4
+6.18540004189429e-09 6.18540004189429e-09 6.18540004189429e-09 6.18540004189429e-09 0.0893083593109021 0.0893083593109021 0.0893083593109021 0.0893083593109021
+0.00733333355311849 -0.0399999981552139 -0.04
+-0.0084444439435301 -0.014755555567257 -0.0399999958276749
+-0.0242222225033513 0.0104888877628979 -0.0399999958276749
+-0.0399999967217446 0.0357333317575355 -0.04
+
+  </GeomObject>
+
+  <GeomObject ID="44">
+100 1 0 0
+2 0
+4 4
+6.18540004189429e-09 6.18540004189429e-09 6.18540004189429e-09 6.18540004189429e-09 0.0893083593109021 0.0893083593109021 0.0893083593109021 0.0893083593109021
+0.408333330586019 2.30598258685405e-08
+0.605555512531825 0.315555569034084
+0.802777742787894 0.631111106244493
+0.999999959021807 0.946666646969194
+
+  </GeomObject>
+
+  <GeomObject ID="31">
+120 1 0 0
+3
+-0.04 0 0.04
+0 1 0
+1
+-0.04 0.04
+0
+  </GeomObject>
+
+  <GeomObject ID="62">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.0794573177052652 0.0794573177052652 0.0794573177052652 0.0794573177052652
+-0.0236267367200644 -0.0314466048132081
+0.00150431566333204 -0.0230843986206123
+0.0266353668491259 -0.0147221888288454
+0.0517664192325224 -0.00635998263624957
+
+  </GeomObject>
+
+  <GeomObject ID="52">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 -0.00733333355311849 -0.00733333355311849 -0.00733333355311849 -0.00733333355311849
+0 0
+0.13611111019534 0
+0.272222220390679 0
+0.408333330586019 0
+
+  </GeomObject>
+
+  <GeomObject ID="47">
+120 1 0 0
+3
+-0.04 0.0757333317575355 -0.04
+0 -1 0
+1
+0.0357333317575355 0.04
+1
+  </GeomObject>
+
+  <GeomObject ID="46">
+100 1 0 0
+2 0
+4 4
+0.0357333317575355 0.0357333317575355 0.0357333317575355 0.0357333317575355 0.04 0.04 0.04 0.04
+1 0.946666646969194
+1 0.964444431312796
+1 0.982222215656398
+1 1
+
+  </GeomObject>
+
+  <GeomObject ID="56">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.08 0.08 0.08 0.08
+1 1
+0.666666666666667 1
+0.333333333333333 1
+0 1
+
+  </GeomObject>
+
+  <GeomObject ID="57">
+120 1 0 0
+3
+0.04 0.04 -0.04
+0 0 1
+1
+0 0.08
+0
+  </GeomObject>
+
+  <GeomObject ID="58">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+0 1
+0 0.666666666666667
+0 0.333333333333333
+0 0
+
+  </GeomObject>
+
+  <GeomObject ID="59">
+120 1 0 0
+3
+0.04 0 0.04
+0 -1 0
+1
+-0.04 0.04
+0
+  </GeomObject>
+
+  <GeomObject ID="60">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.08 0.08 0.08 0.08
+0 0
+0.333333333333333 0
+0.666666666666667 0
+1 0
+
+  </GeomObject>
+
+  <GeomObject ID="61">
+120 1 0 0
+3
+0.04 -0.04 -0.04
+0 0 1
+1
+0 0.08
+1
+  </GeomObject>
+
+  <GeomObject ID="54">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+1 0
+1 0.333333333333333
+1 0.666666666666667
+1 1
+
+  </GeomObject>
+
+  <GeomObject ID="55">
+120 1 0 0
+3
+0.04 0 -0.04
+0 1 0
+1
+-0.04 0.04
+0
+  </GeomObject>
+
+  <GeomObject ID="67">
+100 1 0 0
+3 0
+4 4
+0 0 0 0 0.0893083593109021 0.0893083593109021 0.0893083593109021 0.0893083593109021
+-0.0400000102818012 0.0357333347201347 -0.0399999916553497
+-0.0242222246888551 0.0104888912597036 -0.0399999958276749
+-0.00844444503628192 -0.0147555538188541 -0.0399999958276749
+0.00733332335948944 -0.0400000065565109 -0.0399999916553497
+
+  </GeomObject>
+
+  <GeomObject ID="65">
+100 1 0 0
+3 0
+4 4
+0 0 0 0 0.0990381731936084 0.0990381731936084 0.0990381731936084 0.0990381731936084
+-0.0400000028312206 -0.0399999916553497 0.0238202288746834
+-0.0400000014156103 -0.0147555530337569 0.00254681771039934
+-0.03999999769032 0.0104888909762568 -0.0187265933652831
+-0.03999999538064 0.0357333347201347 -0.0400000065565109
+
+  </GeomObject>
+
+  <GeomObject ID="64">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.0990381731936084 0.0990381731936084 0.0990381731936084 0.0990381731936084
+0.0517664192325224 -0.00635998263624957
+0.0266353678779343 0.0150472643404313
+0.00150430934103563 0.0364545028854331
+-0.0236267420135524 0.0578617498621141
+
+  </GeomObject>
+
+  <GeomObject ID="33">
+120 1 0 0
+3
+-0.04 0.04 -0.04
+0 0 1
+1
+0 0.08
+1
+  </GeomObject>
+
+  <GeomObject ID="66">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.0893083593109021 0.0893083593109021 0.0893083593109021 0.0893083593109021
+-0.0236267372106736 0.0578617516049307
+-0.0236267358399003 0.0280922986943049
+-0.0236267310870138 -0.00167715621158098
+-0.0236267310870138 -0.031446611117467
+
+  </GeomObject>
+
+  <GeomObject ID="9">
+120 1 0 0
+3
+0.04 -0.04 -0.04
+0 0 1
+1
+0 0.08
+0
+  </GeomObject>
+
+  <GeomObject ID="51">
+120 1 0 0
+3
+0.04 0 -0.04
+0 1 0
+1
+-0.04 0.04
+1
+  </GeomObject>
+
+  <GeomObject ID="11">
+120 1 0 0
+3
+0 -0.04 0.04
+-1 0 0
+1
+-0.04 0.04
+0
+  </GeomObject>
+
+  <GeomObject ID="8">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.08 0.08 0.08 0.08
+1 1
+0.666666666666667 1
+0.333333333333333 1
+0 1
+
+  </GeomObject>
+
+  <GeomObject ID="22">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+1 0
+1 0.333333333333333
+1 0.666666666666667
+1 1
+
+  </GeomObject>
+
+  <GeomObject ID="10">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+0 1
+0 0.666666666666667
+0 0.333333333333333
+0 0
+
+  </GeomObject>
+
+  <GeomObject ID="26">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.0990381692076425 0.0990381692076425 0.0990381692076425 0.0990381692076425
+4.98494158690455e-08 0.946666668951511
+0.265917642862434 0.631111101726697
+0.531835218895284 0.315555543708783
+0.797752836420777 1.72293648897649e-08
+
+  </GeomObject>
+
+  <GeomObject ID="30">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+1 0
+1 0.333333333333333
+1 0.666666666666667
+1 1
+
+  </GeomObject>
+
+  <GeomObject ID="32">
+100 1 0 0
+2 0
+4 4
+0 0 0 0 0.08 0.08 0.08 0.08
+1 1
+0.666666666666667 1
+0.333333333333333 1
+0 1
+
+  </GeomObject>
+
+  <GeomObject ID="50">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+0 1
+0 0.666666666666667
+0 0.333333333333333
+0 0
+
+  </GeomObject>
+
+  <GeomObject ID="48">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+1 1
+0.666666666666667 1
+0.333333333333333 1
+0 1
+
+  </GeomObject>
+
+  <GeomObject ID="21">
+120 1 0 0
+3
+0 -0.04 0.04
+-1 0 0
+1
+-0.04 0.04
+1
+  </GeomObject>
+
+  <GeomObject ID="20">
+100 1 0 0
+2 0
+4 4
+-0.04 -0.04 -0.04 -0.04 0.04 0.04 0.04 0.04
+0 0
+0.333333333333333 0
+0.666666666666667 0
+1 0
+
+  </GeomObject>
+
+  <GeomObject ID="4">
+211 1 0 0
+0 0 200
+3 0
+2 2
+0 0 1 1
+2 2
+0 0 1 1
+0.04 -0.04 0.04
+0.04 -0.04 -0.04
+0.04 0.04 0.04
+0.04 0.04 -0.04
+
+2 0 2 0 0
+  </GeomObject>
+
+</g22>
