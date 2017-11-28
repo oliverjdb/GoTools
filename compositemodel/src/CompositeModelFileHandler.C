@@ -145,11 +145,12 @@ void CompositeModelFileHandler::writeBody(shared_ptr<Body>& body,
   os << "\n" << indent_ << "<Body ID=\"" << body_id << "\">\n";
   if (body->hasMaterialInfo()) {
     os << indent_ << indent_ << "<Material>\n";
-    os << indent_ << indent_ << indent_ << "<MaterialIDs>\n";
+    os << indent_ << indent_ << indent_ << "<MaterialIDs>";
     vector<int> mats = body->getMaterial();
-    for (size_t ix=0;ix!=mats.size(); ++ix) os << mats[ix] << " ";
-    os << indent_ << indent_ << indent_ << "<MaterialIDs>\n";
-    os <<  "</Material>\n";    
+    os << mats.size();
+    for (size_t ix=0;ix!=mats.size(); ++ix) os << " " << mats[ix];
+    os << "<MaterialIDs>\n";
+    os << indent_ << indent_ << "</Material>\n";    
   }
   os << indent_ << indent_ << "<Shells>" << nmb_shells;
   for (int ki = 0; ki < nmb_shells; ++ki)
@@ -862,15 +863,21 @@ CompositeModelFileHandler::readSurface(const char* filein)
       pugi::xml_node material_node = node.child("Material");
       vector<int> material_vals;
       if (material_node)
-	{
-	  const std::string material_string = material_node.child_value();
-	  std::istringstream material_ss(material_string);
-          while (!material_ss.eof()) { 
-            int material_val;
-	    material_ss >> material_val;
-            material_vals.push_back(material_val);
+        {
+          pugi::xml_node material_id_node = material_node.child("MaterialIDs");
+          // Read material IDs
+          if (material_id_node) {
+            const std::string materialid_string = material_id_node.child_value();
+            std::istringstream materialid_ss(materialid_string);
+            int num_mats;
+            materialid_ss >> num_mats;
+            for (int mx=0; mx!=num_mats; ++mx) {
+              int material_id;
+              materialid_ss >> material_id;
+              material_vals.push_back(material_id);
+            }
           }
-	}
+        }
 
       // Read all shells
       pugi::xml_node shell_nodes = node.child("Shells");

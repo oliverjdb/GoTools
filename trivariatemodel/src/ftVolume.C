@@ -78,7 +78,7 @@ using namespace Go;
 
 //---------------------------------------------------------------------------
 ftVolume::ftVolume(shared_ptr<ParamVolume> vol, int id)
-  : Body(), vol_(vol), id_(id)
+  : Body(), vol_(vol), id_(id), mat_dist_(nullptr)
 //---------------------------------------------------------------------------
 {
   double eps = 1.0e-6;
@@ -95,7 +95,7 @@ ftVolume::ftVolume(shared_ptr<ParamVolume> vol, int id)
 //---------------------------------------------------------------------------
 ftVolume::ftVolume(shared_ptr<ParamVolume> vol, double gap_eps,
 		   double kink_eps, int id)
-  : Body(), vol_(vol), id_(id)
+  : Body(), vol_(vol), id_(id), mat_dist_(nullptr)
 //---------------------------------------------------------------------------
 {
   shared_ptr<SurfaceModel> shell = createBoundaryShell(gap_eps, kink_eps);
@@ -108,7 +108,7 @@ ftVolume::ftVolume(shared_ptr<ParamVolume> vol, double gap_eps,
 //---------------------------------------------------------------------------
 ftVolume::ftVolume(shared_ptr<ParamVolume> vol, double gap_eps, 
 		   double neighbour, double kink_eps, double bend, int id)
-  : Body(), vol_(vol), id_(id)
+  : Body(), vol_(vol), id_(id), mat_dist_(nullptr)
 //---------------------------------------------------------------------------
 {
   shared_ptr<SurfaceModel> shell = createBoundaryShell(gap_eps, kink_eps);
@@ -122,7 +122,7 @@ ftVolume::ftVolume(shared_ptr<ParamVolume> vol, double gap_eps,
 ftVolume::ftVolume(shared_ptr<ParamVolume> vol, 
 		   shared_ptr<SurfaceModel> shell,
 		   int id)
-  : Body(shell), vol_(vol), id_(id)
+  : Body(shell), vol_(vol), id_(id), mat_dist_(nullptr)
 //---------------------------------------------------------------------------
 {
 			     
@@ -132,7 +132,7 @@ ftVolume::ftVolume(shared_ptr<ParamVolume> vol,
 ftVolume::ftVolume(shared_ptr<ParamVolume> vol, 
 		   vector<shared_ptr<SurfaceModel> > shells,
 		   int id)
-  : Body(shells), vol_(vol), id_(id)
+  : Body(shells), vol_(vol), id_(id), mat_dist_(nullptr)
 //---------------------------------------------------------------------------
 {
 
@@ -141,7 +141,7 @@ ftVolume::ftVolume(shared_ptr<ParamVolume> vol,
 //---------------------------------------------------------------------------
 ftVolume::ftVolume(shared_ptr<SurfaceModel> shell,
 		   int id)
-  : Body(shell), id_(id)
+  : Body(shell), id_(id), mat_dist_(nullptr)
 //---------------------------------------------------------------------------
 {
   // Create a large enough volume
@@ -178,7 +178,7 @@ ftVolume::ftVolume(shared_ptr<SurfaceModel> shell,
 //---------------------------------------------------------------------------
 ftVolume::ftVolume(shared_ptr<Body> body,
 		   int id)
-  : Body(body), id_(id)
+  : Body(body), id_(id), mat_dist_(nullptr)
 //---------------------------------------------------------------------------
 {
   // Create a large enough volume
@@ -10174,7 +10174,8 @@ std::vector<double> ftVolume::evaluateMaterialDistribution(double upar, double v
 void ftVolume::setMaterialDistribution(std::shared_ptr<SplineVolume> mat_dist) 
 //===========================================================================
 {
-  
+  if (!mat_dist) { mat_dist_ = nullptr; return; } 
+
   // Check that the parameter domains of the geometry 
   // and material distribution match
   if (mat_dist->rational()) 
@@ -10220,8 +10221,6 @@ void ftVolume::setMaterialDistribution(std::shared_ptr<SplineVolume> mat_dist)
   if(material_id_.size() != num_mat) 
     THROW("Mismatch between material ids and material distribution");  
  
-  if (mat_dist_ != NULL) MESSAGE("Overwriting existing material distribution");
-  
   // Everything should be good now, so we can go ahead and set the material distribution
   mat_dist_ = mat_dist;
 
