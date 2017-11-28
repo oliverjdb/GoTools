@@ -6,7 +6,7 @@
 
 using namespace Go;
 using namespace std;
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 
 namespace {
 
@@ -71,7 +71,7 @@ void add_outside_penalty_energy(const Point3D& pt,
                                 Point1D& res_der);
 };
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ----------------------------------------------------------------------------  
 ValAndDer<Point1D> parametric_curve_energy(const shared_ptr<const ParamCurve> curve,
@@ -117,7 +117,7 @@ ValAndDer<Point1D> parametric_curve_energy(const shared_ptr<const ParamCurve> cu
     
 }
   
-}; // end namespace tesselateutils
+}; // end namespace tessellateutils
 
 
 namespace {

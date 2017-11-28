@@ -1,9 +1,9 @@
 #include <cmath>
 #include "ParametricObjectEnergyFunctor.h"
 #include "GoTools/utils/GeneralFunctionMinimizer.h"
-#include "tesselate_parametric_volume.h"
+#include "tessellate_parametric_volume.h"
 
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 using namespace std;
 using namespace Go;
 
@@ -25,10 +25,10 @@ void optimize_interior_points(const shared_ptr<const ParamCurve> pc,
   
 }; // end anonymous namespace 
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ----------------------------------------------------------------------------
-vector<double> tesselateParametricCurve(const shared_ptr<const ParamCurve> pc,
+vector<double> tessellateParametricCurve(const shared_ptr<const ParamCurve> pc,
                                         const double vdist)
 // ----------------------------------------------------------------------------
 {
@@ -72,7 +72,7 @@ vector<double> tesselateParametricCurve(const shared_ptr<const ParamCurve> pc,
 // }
 
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 namespace {
 

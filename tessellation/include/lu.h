@@ -1,7 +1,7 @@
 #ifndef _LU_H
 #define _LU_H
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ============================================================================
 // compute LU decomposition of an N x N matrix, where column-wise coefficients
@@ -12,6 +12,6 @@ namespace TesselateUtils {
 bool lu(unsigned int N, double* const coefs, int* perm, bool& parity);
 // ============================================================================
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 #endif

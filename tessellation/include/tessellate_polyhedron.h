@@ -6,26 +6,26 @@
 #include <cmath>
 #include "common_defs.h"
 #include "distance_function.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 #include "triangulate_domain.h"
 #include "GoTools/geometry/ParamSurface.h"
 #include "MeshXD.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 template<typename PointXD> 
-std::vector<PointXD> tesselateSegment(const PointXD& p1,
+std::vector<PointXD> tessellateSegment(const PointXD& p1,
 					const PointXD& p2,
 					const double vdist);
 
 // Boundary polygon should be given counterclockwise
-Mesh2D tesselatePolygon2D(const Point2D* const polygon,
+Mesh2D tessellatePolygon2D(const Point2D* const polygon,
 			  const unsigned int num_corners,
 			  const double vdist,
                           const shared_ptr<const Go::ParamSurface> surf = 0);
 
 // All face triangle should be presented with face normal pointing outwards.
-Mesh3D tesselatePolyhedron3D(const Point3D* const bpoints,
+Mesh3D tessellatePolyhedron3D(const Point3D* const bpoints,
                              const unsigned int num_bpoints,
                              const Triangle* const btris,
                              const unsigned int num_tris,
@@ -35,7 +35,7 @@ Mesh3D tesselatePolyhedron3D(const Point3D* const bpoints,
 // ========================= TEMPLATE IMPLEMENTATIONS =========================
 
 template<typename PointXD> inline
-std::vector<PointXD> tesselateSegment(const PointXD& p1,
+std::vector<PointXD> tessellateSegment(const PointXD& p1,
 				      const PointXD& p2,
 				      const double vdist)
 {

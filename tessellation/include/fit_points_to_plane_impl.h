@@ -4,9 +4,10 @@
 #include <cmath>
 #include <algorithm>
 #include <vector>
+#include <numeric>
 #include "GoTools/utils/GeneralFunctionMinimizer.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ----------------------------------------------------------------------------  
 template<typename P>

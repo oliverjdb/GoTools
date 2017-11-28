@@ -3,7 +3,7 @@
 
 #include <array>
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ----------------------------------------------------------------------------
 // Energy as a function of distance.  Its support remains within the support of

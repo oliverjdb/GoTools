@@ -3,16 +3,16 @@
 
 #include <tuple>
 #include <stdexcept>
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 #include "interpoint_distances.h"
 
 namespace {
-template<typename PointXD> std::vector<TesselateUtils::DistanceEntry> 
+template<typename PointXD> std::vector<TessellateUtils::DistanceEntry> 
 interpoint_distances_bruteforce_impl(const PointXD* const points,
 				     const uint num_points,
 				     const double R);
 
-template<typename PointXD> std::vector<TesselateUtils::DistanceEntry> 
+template<typename PointXD> std::vector<TessellateUtils::DistanceEntry> 
 interpoint_distances_smart_impl(const PointXD* const points,
 				const uint num_points,
 				const double R);
@@ -32,21 +32,21 @@ BinnedPoints<PointXD>  bin_points(const PointXD* const points,
                                   const uint num_points,
                                   const double R);
 
-void add_distances_from_bins(const BinnedPoints<TesselateUtils::Point2D>& binned_points,
+void add_distances_from_bins(const BinnedPoints<TessellateUtils::Point2D>& binned_points,
 			     const uint ix1, const uint iy1,
 			     const uint ix2, const uint iy2,
 			     const double R, 
-			     std::vector<TesselateUtils::DistanceEntry>& result);
-void add_distances_from_bins(const BinnedPoints<TesselateUtils::Point3D>& binned_points,
+			     std::vector<TessellateUtils::DistanceEntry>& result);
+void add_distances_from_bins(const BinnedPoints<TessellateUtils::Point3D>& binned_points,
 			     const uint ix1, const uint iy1, const uint iz1,
 			     const uint ix2, const uint iy2, const uint iz2,
                              const double R, 
-			     std::vector<TesselateUtils::DistanceEntry>& result);
+			     std::vector<TessellateUtils::DistanceEntry>& result);
 
 };
 
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 
 // ============================================================================
@@ -108,7 +108,7 @@ std::vector<DistanceEntry> interpoint_distances(const PointXD* points,
   return result;
 }
 
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 
 
@@ -116,13 +116,13 @@ std::vector<DistanceEntry> interpoint_distances(const PointXD* points,
 namespace {
 
 // ----------------------------------------------------------------------------
-template<> BinnedPoints<TesselateUtils::Point2D> 
-bin_points(const TesselateUtils::Point2D* const points,
+template<> BinnedPoints<TessellateUtils::Point2D> 
+bin_points(const TessellateUtils::Point2D* const points,
            const uint num_points,
            const double R)
 // ----------------------------------------------------------------------------
 {
-  const auto bbox = TesselateUtils::bounding_box_2D(points, num_points); 
+  const auto bbox = TessellateUtils::bounding_box_2D(points, num_points); 
   const double xmin = bbox[0]; const double xmax = bbox[1];
   const double ymin = bbox[2]; const double ymax = bbox[3];
 
@@ -136,7 +136,7 @@ bin_points(const TesselateUtils::Point2D* const points,
   const uint num_bins_y = (uint)ceil((ymax-ymin) * Rinv) + 1;
 
   // Sort points according to bin
-  BinnedPoints<TesselateUtils::Point2D>
+  BinnedPoints<TessellateUtils::Point2D>
     result { {num_points, {0, 0}}, std::vector<uint>(num_points, 0),
              {}, num_bins_x, num_bins_y, 1};
   uint pos = 0;
@@ -158,13 +158,13 @@ bin_points(const TesselateUtils::Point2D* const points,
 }
     
 // ----------------------------------------------------------------------------
-template<> BinnedPoints<TesselateUtils::Point3D>
-bin_points(const TesselateUtils::Point3D* const points,
+template<> BinnedPoints<TessellateUtils::Point3D>
+bin_points(const TessellateUtils::Point3D* const points,
            const uint num_points,
            const double R)
 // ----------------------------------------------------------------------------
 {
-  const auto bbox = TesselateUtils::bounding_box_3D(points, num_points); 
+  const auto bbox = TessellateUtils::bounding_box_3D(points, num_points); 
   const double xmin = bbox[0]; const double xmax = bbox[1];
   const double ymin = bbox[2]; const double ymax = bbox[3];
   const double zmin = bbox[4]; const double zmax = bbox[5];
@@ -182,7 +182,7 @@ bin_points(const TesselateUtils::Point3D* const points,
   const uint num_bins_z = (uint)ceil((zmax-zmin) * Rinv) + 1;
   
   // Sort points according to bin
-  BinnedPoints<TesselateUtils::Point3D> result {
+  BinnedPoints<TessellateUtils::Point3D> result {
     {num_points, {0, 0}},
     std::vector<uint>(num_points, 0),
     {},
@@ -210,39 +210,39 @@ bin_points(const TesselateUtils::Point3D* const points,
 }
     
 // ----------------------------------------------------------------------------  
-template<typename PointXD> std::vector<TesselateUtils::DistanceEntry> 
+template<typename PointXD> std::vector<TessellateUtils::DistanceEntry> 
 interpoint_distances_bruteforce_impl(const PointXD* const points, 
 				     const uint num_points,
 				     const double R)
 // ----------------------------------------------------------------------------
 {
   const double R2 = R*R;
-  std::vector<TesselateUtils::DistanceEntry> result;
+  std::vector<TessellateUtils::DistanceEntry> result;
   // brute force implementation
   // @@ This is an N^2 algorithm, so is not expected to scale wells
 
   const auto points_end = points + num_points;
   for (auto p = points; p != points_end; ++p)
     for (auto q = p+1; q != points_end; ++q)
-      if (TesselateUtils::dist2(*p, *q) < R2)
+      if (TessellateUtils::dist2(*p, *q) < R2)
   	result.push_back({uint(p-points),
                           uint(q-points),
-                          TesselateUtils::dist(*p, *q)});
+                          TessellateUtils::dist(*p, *q)});
   return result;  
 }
 
 // ----------------------------------------------------------------------------
 template<>  // specialization for Point2D
-std::vector<TesselateUtils::DistanceEntry> 
-interpoint_distances_smart_impl(const TesselateUtils::Point2D* const points, 
+std::vector<TessellateUtils::DistanceEntry> 
+interpoint_distances_smart_impl(const TessellateUtils::Point2D* const points, 
 				const uint num_points, 
 				const double R)
 // ----------------------------------------------------------------------------
 {
   // sort points in bins depending on spatial position
-  const BinnedPoints<TesselateUtils::Point2D> binned_points = bin_points(points, num_points, R);
+  const BinnedPoints<TessellateUtils::Point2D> binned_points = bin_points(points, num_points, R);
   
-  std::vector<TesselateUtils::DistanceEntry> result;  
+  std::vector<TessellateUtils::DistanceEntry> result;  
   const uint num_bins_x = binned_points.num_bins_x;
   const uint num_bins_y = binned_points.num_bins_y;
   
@@ -266,17 +266,17 @@ interpoint_distances_smart_impl(const TesselateUtils::Point2D* const points,
 
 
 // ----------------------------------------------------------------------------
-template<>  // specialization for TesselateUtils::Point3D
-std::vector<TesselateUtils::DistanceEntry> 
-interpoint_distances_smart_impl(const TesselateUtils::Point3D* const points, 
+template<>  // specialization for TessellateUtils::Point3D
+std::vector<TessellateUtils::DistanceEntry> 
+interpoint_distances_smart_impl(const TessellateUtils::Point3D* const points, 
 				const uint num_points, 
 				const double R)
 // ----------------------------------------------------------------------------
 {
   // sort points in bins depending on spatial position
-  const BinnedPoints<TesselateUtils::Point3D> binned_points = bin_points(points, num_points, R);
+  const BinnedPoints<TessellateUtils::Point3D> binned_points = bin_points(points, num_points, R);
   
-  std::vector<TesselateUtils::DistanceEntry> result;  
+  std::vector<TessellateUtils::DistanceEntry> result;  
   const uint num_bins_x = binned_points.num_bins_x;
   const uint num_bins_y = binned_points.num_bins_y;
   const uint num_bins_z = binned_points.num_bins_z;
@@ -313,11 +313,11 @@ interpoint_distances_smart_impl(const TesselateUtils::Point3D* const points,
 }
 
 // ----------------------------------------------------------------------------
-inline void add_distances_from_bins(const BinnedPoints<TesselateUtils::Point2D>& binned_points,
+inline void add_distances_from_bins(const BinnedPoints<TessellateUtils::Point2D>& binned_points,
                                     const uint ix1, const uint iy1,
                                     const uint ix2, const uint iy2,
                                     const double R, 
-                                    std::vector<TesselateUtils::DistanceEntry>& result)
+                                    std::vector<TessellateUtils::DistanceEntry>& result)
 // ----------------------------------------------------------------------------  
 {
   const uint bin_1_linear_ix = iy1 * binned_points.num_bins_x + ix1; 
@@ -348,11 +348,11 @@ inline void add_distances_from_bins(const BinnedPoints<TesselateUtils::Point2D>&
 }
 
 // ----------------------------------------------------------------------------
-inline void add_distances_from_bins(const BinnedPoints<TesselateUtils::Point3D>& binned_points,
+inline void add_distances_from_bins(const BinnedPoints<TessellateUtils::Point3D>& binned_points,
                                     const uint ix1, const uint iy1, const uint iz1,
                                     const uint ix2, const uint iy2, const uint iz2,
                                     const double R, 
-                                    std::vector<TesselateUtils::DistanceEntry>& result)
+                                    std::vector<TessellateUtils::DistanceEntry>& result)
 // ----------------------------------------------------------------------------  
 {
   const uint bin_1_linear_ix = (iz1 * binned_points.num_bins_y + iy1) * binned_points.num_bins_x + ix1; 

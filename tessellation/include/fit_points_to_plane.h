@@ -3,7 +3,7 @@
 
 #include <array>
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 
 // Fit a minimum of 3 points to a plane in 3D space.  The returned value represent the four

@@ -6,7 +6,7 @@
 #include <algorithm>
 #include "common_defs.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 const double PI = 3.14159265358979323;
 
@@ -467,8 +467,8 @@ template<typename P2D, typename P3D>
 std::vector<P2D> transform_to_2D(const std::vector<P3D>& pts);
 // ----------------------------------------------------------------------------
 
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
-#include "tesselate_utils_impl.h"
+#include "tessellate_utils_impl.h"
 
 #endif

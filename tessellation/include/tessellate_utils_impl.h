@@ -8,7 +8,7 @@
 #include <iostream> // @@ just for debuging
 #include "common_defs.h"
 #include "lu.h"
-namespace TesselateUtils
+namespace TessellateUtils
 {
 
 // ----------------------------------------------------------------------------

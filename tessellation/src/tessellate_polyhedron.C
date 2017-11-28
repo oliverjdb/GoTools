@@ -5,8 +5,8 @@
 #include <cmath>
 #include <algorithm>
 #include "clip_grid.h"
-#include "tesselate_utils.h"
-#include "tesselate_polyhedron.h"
+#include "tessellate_utils.h"
+#include "tessellate_polyhedron.h"
 #include "polyhedral_energies.h"
 #include "GoTools/utils/GeneralFunctionMinimizer.h"
 #include "distance_function.h"
@@ -15,7 +15,7 @@
 
 using namespace Go;
 using namespace std;
-using namespace TesselateUtils; 
+using namespace TessellateUtils; 
 
 namespace {
 
@@ -127,10 +127,10 @@ void optimize_interior_points(const Point3D* bpoints,
   
 }; // end anonymous namespace
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ============================================================================
-Mesh2D tesselatePolygon2D(const Point2D* const polygon,
+Mesh2D tessellatePolygon2D(const Point2D* const polygon,
 			  const unsigned int num_corners,
 			  const double vdist,
                           const shared_ptr<const ParamSurface> surf)
@@ -159,7 +159,7 @@ Mesh2D tesselatePolygon2D(const Point2D* const polygon,
 
   
 // ============================================================================
-Mesh3D tesselatePolyhedron3D(const Point3D* const bpoints,
+Mesh3D tessellatePolyhedron3D(const Point3D* const bpoints,
                              const unsigned int num_bpoints,
                              const Triangle* const btris,
                              const unsigned int num_btris,

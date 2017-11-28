@@ -1,12 +1,12 @@
 #include <cmath>
 #include "ParametricObjectEnergyFunctor.h"
 #include "GoTools/utils/GeneralFunctionMinimizer.h"
-#include "tesselate_parametric_volume.h"
-#include "tesselate_utils.h"
+#include "tessellate_parametric_volume.h"
+#include "tessellate_utils.h"
 #include "triangulate_domain.h"
 #include "ParametricObjectEnergyFunctor.h"
 
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 using namespace std;
 using namespace Go;
 
@@ -27,10 +27,10 @@ void optimize_interior_points(const SurfPtr sp,
   
 }; // end anonymous namespace
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
   // ============================================================================
-Mesh2D tesselateParametricSurface(const SurfPtr surf,
+Mesh2D tessellateParametricSurface(const SurfPtr surf,
                                   const Point2D* const bpts,
                                   const uint num_bpts,
                                   const double vdist)
@@ -79,7 +79,7 @@ Mesh2D tesselateParametricSurface(const SurfPtr surf,
 }
 
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 namespace {
 

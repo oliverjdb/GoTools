@@ -1,11 +1,11 @@
 #include "polyhedral_energies.h"
 #include "interpoint_distances.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 #include "common_defs.h"
 #include <fstream> // @@ for debugging purposes
 
 using namespace std;
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 
 namespace {
 
@@ -61,7 +61,7 @@ ClippedDomainType point_domain_type(const Point2D& pt,
   
 }; // end anonymous namespace 
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ----------------------------------------------------------------------------
 ValAndDer<Point2D> polygon_energy(const Point2D* const bpoints,

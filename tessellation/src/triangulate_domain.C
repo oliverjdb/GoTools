@@ -6,12 +6,12 @@
 #include <assert.h>
 #include <stdexcept>
 #include "triangulate_domain.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 #include "basic_intersections.h"
 #include "TriangleOctTree.h"
 
 using namespace std;
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 
 namespace {
   enum TriangleStatus {BEHIND_FRONT=0, PROBLEMATIC=1, FRONT_NON_DEL=2, FRONT_DEL=3};
@@ -117,7 +117,7 @@ namespace {
 
 };
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ============================================================================
 // The algorithm used here is inspired by:
@@ -255,7 +255,7 @@ vector<Tet> construct_tets(const Point3D* const points,
 }
 
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 namespace {
 

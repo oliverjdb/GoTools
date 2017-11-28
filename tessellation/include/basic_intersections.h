@@ -3,7 +3,7 @@
 
 #include "common_defs.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 enum IsectCase {
   DISJOINT,         // no intersection
@@ -82,7 +82,7 @@ IsectCase isect_triangle_triangle_3D(const Point3D* const tri1,
                                      const double tol);
 // ----------------------------------------------------------------------------    
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 
 #endif

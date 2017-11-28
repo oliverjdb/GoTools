@@ -4,14 +4,14 @@
 //#include <iostream>  
 #include <tuple>
 #include "common_defs.h"
-#include "TesselableVolume.h"
+#include "TessellableVolume.h"
 #include "GoTools/geometry/ParamCurve.h"
 #include "GoTools/geometry/ParamSurface.h"
 #include "GoTools/trivariate/ParamVolume.h"
 #include "GoTools/utils/Point.h"
 #include "GoTools/trivariatemodel/ftVolume.h"
 
-namespace TesselateUtils
+namespace TessellateUtils
 {
   
 struct GoParametricSpaceTraits {
@@ -63,12 +63,12 @@ struct GoParametricSpaceTraits {
 };
 
   
-using GoParametricTesselableVolume = TesselableVolume<GoParametricSpaceTraits>;  
+using GoParametricTessellableVolume = TessellableVolume<GoParametricSpaceTraits>;  
 
 // ----------------------------------------------------------------------------
-// Additional constructor, making a TesselableVolume out of a Go::ftVolume
+// Additional constructor, making a TessellableVolume out of a Go::ftVolume
 template<> template<>
-GoParametricTesselableVolume::TesselableVolume(Go::ftVolume& fvol);
+GoParametricTessellableVolume::TessellableVolume(Go::ftVolume& fvol);
 // ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------

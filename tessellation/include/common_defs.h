@@ -7,7 +7,7 @@
 #include <ostream>
 // #include "GoTools/utils/Point.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 using uint	= unsigned int;
 using Segment   = std::array<uint, 2>; // Representing a segment by indices to endpoints
@@ -384,6 +384,6 @@ inline std::ostream& operator<<(std::ostream& os, const Tet& tet)
 
 
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 #endif

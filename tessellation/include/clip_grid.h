@@ -5,7 +5,7 @@
 #include <vector>
 #include "common_defs.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 enum ClippedDomainType {
   FAR_INSIDE   = 0,    // inside polygon, 'far' from boundary
@@ -48,6 +48,6 @@ ClippedGrid<3> clip_grid_shell_3D(const Point3D* const pcorners,
 
 
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 #endif

@@ -2,7 +2,7 @@
 #include <assert.h>
 
 using namespace std;
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 
 namespace {
 
@@ -65,7 +65,7 @@ inline array<double, 6> sub_box(const array<double, 6>& bbox, uint oct_ix)
   
 }; // end anonymous namespace
 
-namespace TesselateUtils
+namespace TessellateUtils
 {
 
 // ============================================================================
@@ -340,4 +340,4 @@ TriangleOctTree::TriangleOctTree(const Point3D* const pts,
 
  
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils

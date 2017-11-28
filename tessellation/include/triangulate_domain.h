@@ -5,7 +5,7 @@
 #include <vector>
 #include "common_defs.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
   // Compute a generalized Delaunay triangulation of a not necessarily convex
   // domain with a set of given interior points.  The boundary points and

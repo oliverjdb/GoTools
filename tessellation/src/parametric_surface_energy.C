@@ -1,6 +1,6 @@
 #include "fit_points_to_plane.h"
 #include "parametric_object_energies.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 #include "interpoint_distances.h"
 #include "distance_energy.h"
 
@@ -10,7 +10,7 @@
 
 using namespace Go;
 using namespace std;
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 
 namespace {
   
@@ -78,7 +78,7 @@ void add_boundary_contribution(const Point3D& bp1,
 
 };
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ----------------------------------------------------------------------------
 ValAndDer<Point2D>
@@ -117,7 +117,7 @@ parametric_surf_energy(const shared_ptr<const Go::ParamSurface> surf,
   return E_tot;
 }
   
-}; //end namespace TesselateUtils
+}; //end namespace TessellateUtils
 
 namespace {
 

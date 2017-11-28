@@ -8,7 +8,7 @@
 #include "clip_grid.h"
 
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ============================================================================
 ValAndDer<Point2D> polygon_energy(const Point2D* const bpoints,

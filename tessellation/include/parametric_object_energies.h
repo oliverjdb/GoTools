@@ -8,7 +8,7 @@
 #include "clip_grid.h"
 #include "common_defs.h"
 
-namespace TesselateUtils
+namespace TessellateUtils
 {
 
 // ============================================================================
@@ -30,6 +30,6 @@ ValAndDer<Point2D> parametric_surf_energy(const shared_ptr<const Go::ParamSurfac
                                           const ClippedGrid<2>* const cgrid);
 // ============================================================================  
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 #endif

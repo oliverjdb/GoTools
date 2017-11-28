@@ -1,10 +1,10 @@
 #include "clip_grid.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 
 #include <fstream>  // @@ for debugging only
 #include <iterator> // @@ for debugging only
 using namespace std;
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 
 namespace  {
 
@@ -60,7 +60,7 @@ array<Point2D, 2> tri_plane_isect_line(const array<Point3D, 3>& tricorners,
   
 }; //end anonymous namespace
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 //----------------------------------------------------------------------------
 ClippedGrid<2> clip_grid_polygon_2D(const Point2D* const pcorners,
@@ -129,7 +129,7 @@ ClippedGrid<3> clip_grid_shell_3D(const Point3D* const pcorners,
   return result;
 }
   
-}; //end namespace TesselateUtils
+}; //end namespace TessellateUtils
 
 namespace {
 

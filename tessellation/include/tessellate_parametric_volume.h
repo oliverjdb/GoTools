@@ -6,21 +6,21 @@
 #include "GoTools/geometry/ParamCurve.h"
 #include "MeshXD.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
   
-  // tesselate parametric curve, returning a vector of parameter values
+  // tessellate parametric curve, returning a vector of parameter values
   std::vector<double>
-  tesselateParametricCurve(const std::shared_ptr<const Go::ParamCurve> pc,
+  tessellateParametricCurve(const std::shared_ptr<const Go::ParamCurve> pc,
                            const double vdist);
 
   Mesh2D
-  tesselateParametricSurface(const shared_ptr<const Go::ParamSurface> surf,
+  tessellateParametricSurface(const shared_ptr<const Go::ParamSurface> surf,
                              const Point2D* const bpoints,
                              const uint num_bpoints,
                              const double vdist);
   
   Mesh3D
-  tesselateParametricVolume(const shared_ptr<const Go::ParamVolume> pvol,
+  tessellateParametricVolume(const shared_ptr<const Go::ParamVolume> pvol,
                             const Point3D* const bpoints,
                             const Triangle* const tris,
                             const uint num_tris,

@@ -1,5 +1,5 @@
 #include <iostream> // @@ for debugging only
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ----------------------------------------------------------------------------
 ClippedGrid<1> inline
@@ -204,4 +204,4 @@ ParamSurfaceEnergyFunctor::update_cache(const double* const arg) const
                                           &cgrid_);
 }
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils

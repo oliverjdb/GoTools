@@ -2,18 +2,18 @@
 #include <algorithm>
 #include "common_defs.h"
 #include "distance_function.h"
-#include "GoParametricTesselableVolume.h"
-#include "tesselate_parametric_volume.h"
-#include "tesselate_polyhedron.h"
+#include "GoParametricTessellableVolume.h"
+#include "tessellate_parametric_volume.h"
+#include "tessellate_polyhedron.h"
 
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 using namespace std;
 using namespace Go;
 
 namespace {
 
-typedef GoParametricTesselableVolume::PointType PointType;
-typedef GoParametricTesselableVolume::FaceType FaceType;
+typedef GoParametricTessellableVolume::PointType PointType;
+typedef GoParametricTessellableVolume::FaceType FaceType;
   
 // ----------------------------------------------------------------------------  
 vector<Point2D> compute_surface_parameters(const vector<PointType>& boundary,
@@ -40,13 +40,13 @@ construct_edge_index_vector(const vector<shared_ptr<ftEdge>>& edges,
   
 }; // end anonymous namespace
 
-namespace TesselateUtils
+namespace TessellateUtils
 {
 
 // ----------------------------------------------------------------------------
 // Additional constructor
 template<> template<>
-GoParametricTesselableVolume::TesselableVolume(ftVolume& fvol)
+GoParametricTessellableVolume::TessellableVolume(ftVolume& fvol)
 // ----------------------------------------------------------------------------
 {
   const auto shell = fvol.getOuterShell();
@@ -91,7 +91,7 @@ GoParametricTesselableVolume::TesselableVolume(ftVolume& fvol)
 // ----------------------------------------------------------------------------
 
 template <> array<uint, 2>
-GoParametricTesselableVolume::edgeCornerIndices(uint edge_ix) const
+GoParametricTessellableVolume::edgeCornerIndices(uint edge_ix) const
 // ----------------------------------------------------------------------------  
 {
   const auto e = edges_[edge_ix];
@@ -100,7 +100,7 @@ GoParametricTesselableVolume::edgeCornerIndices(uint edge_ix) const
 
 // ----------------------------------------------------------------------------  
 template <> vector<uint>
-GoParametricTesselableVolume::faceBoundaryPointIndices(uint face_ix) const
+GoParametricTessellableVolume::faceBoundaryPointIndices(uint face_ix) const
 // ----------------------------------------------------------------------------
 {
   const auto edge_ixs = faces_[face_ix].ix;
@@ -132,17 +132,17 @@ GoParametricTesselableVolume::faceBoundaryPointIndices(uint face_ix) const
 
 // ----------------------------------------------------------------------------
 template<> 
-void GoParametricTesselableVolume::
-compute_tesselation(const array<PointType, 2>& boundary,
+void GoParametricTessellableVolume::
+compute_tessellation(const array<PointType, 2>& boundary,
                     const EdgeType& edge,
                     const double vdist,
                     vector<PointType>& ipoints)
 // ----------------------------------------------------------------------------
 {
   // lowering slightly 'vdist' along the edge curves may help lower the
-  // possibility of 'impossible' boundary triangles when tesselating the
+  // possibility of 'impossible' boundary triangles when tessellating the
   // interior volume later. @@ (not proven, just experienced)
-  const auto param = tesselateParametricCurve(get<0>(edge), 0.9 * vdist);
+  const auto param = tessellateParametricCurve(get<0>(edge), 0.9 * vdist);
   ipoints.resize(param.size() - 2);
   transform(param.begin()+1, param.end()-1, ipoints.begin(), [&edge]
             (const double d) { return PointType{get<0>(edge)->point(d), d}; });
@@ -165,8 +165,8 @@ vector<PointType> compute_3D_points(const shared_ptr<const ParamSurface> surf,
                        
 // ----------------------------------------------------------------------------  
 template<>
-void GoParametricTesselableVolume::
-compute_tesselation(const vector<PointType>& boundary,
+void GoParametricTessellableVolume::
+compute_tessellation(const vector<PointType>& boundary,
                     const FaceType& face,
                     const double vdist,
                     vector<PointType>& ipoints,
@@ -176,8 +176,8 @@ compute_tesselation(const vector<PointType>& boundary,
   // determine surface parameter values for boundary points
   const vector<Point2D> par = compute_surface_parameters(boundary, face.surf);
 
-  // computing tesselation
-  const Mesh2D m2d = tesselateParametricSurface(face.surf, &par[0],
+  // computing tessellation
+  const Mesh2D m2d = tessellateParametricSurface(face.surf, &par[0],
                                                 (uint)par.size(), vdist);
 
   // compute internal 3D points
@@ -203,8 +203,8 @@ compute_tesselation(const vector<PointType>& boundary,
   
 // ----------------------------------------------------------------------------  
 template<>
-void GoParametricTesselableVolume::
-compute_tesselation(const vector<PointType>& bpoints,
+void GoParametricTessellableVolume::
+compute_tessellation(const vector<PointType>& bpoints,
                     const vector<Triangle>& btris,
                     const VolumeType& volume,
                     const double vdist,
@@ -212,23 +212,23 @@ compute_tesselation(const vector<PointType>& bpoints,
                     vector<Tet>& tets)
 // ----------------------------------------------------------------------------  
 {
-  // There is currently no parameter-based volume tesselation - the tesselation
+  // There is currently no parameter-based volume tessellation - the tessellation
   // is done directly in 3D space, and the corresponding parameters computed in
   // a second step.  Unlike the curve and surface case, it is possible to
-  // tesselate the entity directly in 3D space, as we are here tesselating a
+  // tessellate the entity directly in 3D space, as we are here tessellating a
   // manifold that is not embedded in a higher-dimensional space.  On the other
-  // hand, it might be more computationally efficient to tesselate in parameter
+  // hand, it might be more computationally efficient to tessellate in parameter
   // space (as in the curve and surface case), since we would then not need to
   // compute the parameters post-hoc.  So this could be considered later.
 
   // First, convert the boundary points to Point3D so that the polyhedron
-  // tesselation routine can be called.
+  // tessellation routine can be called.
   vector<Point3D> bp3D(bpoints.size());
   transform(bpoints.begin(), bpoints.end(), bp3D.begin(),
             [&volume] (const PointType& p) {
               return Point3D {p.pos[0], p.pos[1], p.pos[2]};});
 
-  const Mesh3D m3D = tesselatePolyhedron3D(&bp3D[0],
+  const Mesh3D m3D = tessellatePolyhedron3D(&bp3D[0],
                                            (uint)bp3D.size(),
                                            &btris[0],
                                            (uint)btris.size(),

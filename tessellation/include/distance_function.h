@@ -5,7 +5,7 @@
 #include "GoTools/geometry/ParamSurface.h"
 #include "common_defs.h"
 
-namespace TesselateUtils
+namespace TessellateUtils
 {
 
   typedef std::function<double(const Point2D&, const Point2D&, double* grad)> SquaredDistanceFun2D;
@@ -30,6 +30,6 @@ namespace TesselateUtils
 
   SquaredDistanceFun2D make_squared_distance_function(const shared_ptr<const Go::ParamSurface> s);
   
-};// end namespace TesselateUtils
+};// end namespace TessellateUtils
 
 #endif

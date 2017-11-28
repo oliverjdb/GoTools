@@ -4,12 +4,12 @@
 #include <vector>
 #include <memory>
 #include "common_defs.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 #include "GoTools/geometry/ParamCurve.h"
 #include "GoTools/geometry/ParamSurface.h"
 #include "parametric_object_energies.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 struct ParamCurveEnergyFunctionTraits {
   static const int Dim = 1; // a 1-manifold (although in 3D space)
@@ -106,7 +106,7 @@ typedef
 ParametricObjectEnergyFunctor<ParamVolumeEnergyFunctionTraits>
 ParamVolumeEnergyFunctor;
 
-} // end namespace TesselateUtils
+} // end namespace TessellateUtils
 
 #include "ParametricObjectEnergyFunctor_impl.h"
 

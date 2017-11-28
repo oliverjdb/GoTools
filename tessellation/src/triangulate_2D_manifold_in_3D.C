@@ -1,5 +1,5 @@
 #include "triangulate_domain.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 
 #include "GoTools/parametrization/PrFastUnorganized_OP.h"
 #include "GoTools/parametrization/PrParametrizeInt.h"
@@ -15,7 +15,7 @@
 
 using namespace Go;
 using namespace std;
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 
 namespace {
 
@@ -57,7 +57,7 @@ namespace {
 }; // end anonymous namespace
 
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ============================================================================  
 std::vector<Triangle> triangulate_2D_manifold_in_3D(const Point3D* const points,
@@ -101,7 +101,7 @@ std::vector<Triangle> triangulate_2D_manifold_in_3D(const Point3D* const points,
   
 }  
 
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 namespace {
 

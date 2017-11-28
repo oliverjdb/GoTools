@@ -26,7 +26,7 @@ private:
   
 }; // anonymous namespace
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ============================================================================
 // at the moment, this function is just a wrapper for the GoTools
@@ -45,4 +45,4 @@ bool lu(unsigned int N, double* const coefs, int* perm, bool& parity)
   
 }
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils

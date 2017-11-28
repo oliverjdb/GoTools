@@ -54,7 +54,8 @@ template<class Functor> class FunctionMinimizer;
 /// class.  Documentation for both can be found here: \ref FunctionMinimizer
 //===========================================================================
 template<class Functor>
-void minimise_conjugated_gradient(FunctionMinimizer<Functor>& dfmin);
+void minimise_conjugated_gradient(FunctionMinimizer<Functor>& dfmin,
+                                  double stop_tol = std::numeric_limits<double>::epsilon());
 //===========================================================================
 
 /// This is the FunctionMinimizer class that can be used ex. with

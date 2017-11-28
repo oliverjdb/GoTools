@@ -3,7 +3,7 @@
 
 #include "common_defs.h"
 
-namespace TesselateUtils
+namespace TessellateUtils
 {
   struct Mesh2D {
     std::vector<Point2D> points;

@@ -2,10 +2,10 @@
 #include <array>
 #include "basic_intersections.h"
 #include "common_defs.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 
 using namespace std;
-using namespace TesselateUtils;
+using namespace TessellateUtils;
 
 namespace { // helpers
 
@@ -287,7 +287,7 @@ array<Point3D, 2> compute_plane_intersection(const Point3D* const tri1,
 }; // end anonymous namespace
 
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ----------------------------------------------------------------------------
 inline
@@ -636,4 +636,4 @@ IsectCase isect_triangle_triangle_3D(const Point3D* const tri1,
 }
 
   
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils

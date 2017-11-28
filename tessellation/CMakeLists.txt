@@ -1,4 +1,4 @@
-PROJECT(GoTesselation)
+PROJECT(GoTessellation)
 
 # find packages
 # FIND_PACKAGE (Eigen3 3.3 REQUIRED NO_MODULE)
@@ -7,7 +7,7 @@ PROJECT(GoTesselation)
 # Include directories
 
 INCLUDE_DIRECTORIES(
-  ${GoTesselation_SOURCE_DIR}/include
+  ${GoTessellation_SOURCE_DIR}/include
   ${GoToolsCore_SOURCE_DIR}/include
   ${GoTrivariateModel_SOURCE_DIR}/include
   ${GoCompositeModel_SOURCE_DIR}/include
@@ -33,30 +33,30 @@ SET(DEPLIBS
   ttl
   )
 
-# Make the GoTesselation library
+# Make the GoTessellation library
 
-FILE(GLOB_RECURSE GoTesselation_SRCS src/*.C include/*.h)
+FILE(GLOB_RECURSE GoTessellation_SRCS src/*.C include/*.h)
 if (BUILD_AS_SHARED_LIBRARY)
-    ADD_LIBRARY(GoTesselation SHARED ${GoTesselation_SRCS})
+    ADD_LIBRARY(GoTessellation SHARED ${GoTessellation_SRCS})
 else (BUILD_AS_SHARED_LIBRARY)
-    ADD_LIBRARY(GoTesselation ${GoTesselation_SRCS})
+    ADD_LIBRARY(GoTessellation ${GoTessellation_SRCS})
 endif (BUILD_AS_SHARED_LIBRARY)
-TARGET_LINK_LIBRARIES(GoTesselation ${DEPLIBS})
-SET_PROPERTY(TARGET GoTesselation
-  PROPERTY FOLDER "GoTesselation/Libs")
-SET_TARGET_PROPERTIES(GoTesselation PROPERTIES SOVERSION ${GoTools_ABI_VERSION})
+TARGET_LINK_LIBRARIES(GoTessellation ${DEPLIBS})
+SET_PROPERTY(TARGET GoTessellation
+  PROPERTY FOLDER "GoTessellation/Libs")
+SET_TARGET_PROPERTIES(GoTessellation PROPERTIES SOVERSION ${GoTools_ABI_VERSION})
 
 # Apps and tests
 MACRO(ADD_APPS SUBDIR PROPERTY_FOLDER IS_TEST)
-  FILE(GLOB_RECURSE GoTesselation_APPS ${SUBDIR}/*.C)
-  FOREACH(app ${GoTesselation_APPS})
+  FILE(GLOB_RECURSE GoTessellation_APPS ${SUBDIR}/*.C)
+  FOREACH(app ${GoTessellation_APPS})
     GET_FILENAME_COMPONENT(appname ${app} NAME_WE)
     ADD_EXECUTABLE(${appname} ${app})
-    TARGET_LINK_LIBRARIES(${appname} GoTesselation ${DEPLIBS})
+    TARGET_LINK_LIBRARIES(${appname} GoTessellation ${DEPLIBS})
     SET_TARGET_PROPERTIES(${appname}
       PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${SUBDIR})
     SET_PROPERTY(TARGET ${appname}
-      PROPERTY FOLDER "GoTesselation/${PROPERTY_FOLDER}")
+      PROPERTY FOLDER "GoTessellation/${PROPERTY_FOLDER}")
     IF(${IS_TEST})
       ADD_TEST(${appname} ${SUBDIR}/${appname}
 		--log_format=XML --log_level=all --log_sink=../Testing/${appname}.xml)
@@ -81,19 +81,19 @@ ENDIF(GoTools_COMPILE_TESTS)
 
 
 # Copy data
-FILE(COPY ${GoTesselation_SOURCE_DIR}/data
-  DESTINATION ${GoTesselation_BINARY_DIR})
-# FILE(COPY ${GoTesselation_SOURCE_DIR}/examples/data
-#   DESTINATION ${GoTesselation_BINARY_DIR}/examples)
+FILE(COPY ${GoTessellation_SOURCE_DIR}/data
+  DESTINATION ${GoTessellation_BINARY_DIR})
+# FILE(COPY ${GoTessellation_SOURCE_DIR}/examples/data
+#   DESTINATION ${GoTessellation_BINARY_DIR}/examples)
 
 # 'install' target
 
 IF(WIN32)
   # Windows
   # lib
-  INSTALL(TARGETS GoTesselation DESTINATION ${GoTools_INSTALL_PREFIX}/lib)
+  INSTALL(TARGETS GoTessellation DESTINATION ${GoTools_INSTALL_PREFIX}/lib)
   #include
-  INSTALL(DIRECTORY include/GoTools/tesselation
+  INSTALL(DIRECTORY include/GoTools/tessellation
     DESTINATION ${GoTools_INSTALL_PREFIX}/include/GoTools
     FILES_MATCHING PATTERN "*.h"
     PATTERN ".svn" EXCLUDE
@@ -101,15 +101,15 @@ IF(WIN32)
 ELSE(WIN32)
   # Linux
   #lib
-  INSTALL(TARGETS GoTesselation DESTINATION lib COMPONENT tesselation)
+  INSTALL(TARGETS GoTessellation DESTINATION lib COMPONENT tessellation)
   # include
-  INSTALL(DIRECTORY include/GoTools/tesselation
+  INSTALL(DIRECTORY include/GoTools/tessellation
     DESTINATION include/GoTools
-    COMPONENT tesselation-dev
+    COMPONENT tessellation-dev
     FILES_MATCHING PATTERN "*.h"
     PATTERN ".svn" EXCLUDE
     )
 ENDIF(WIN32)
 
-SET(CPACK_STRIP_FILES ${CPACK_STRIP_FILES} libGoTesselation.so)
+SET(CPACK_STRIP_FILES ${CPACK_STRIP_FILES} libGoTessellation.so)
 

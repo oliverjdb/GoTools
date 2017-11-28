@@ -4,9 +4,9 @@
 #include <memory>
 
 #include "common_defs.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 class TriangleOctTree
 {

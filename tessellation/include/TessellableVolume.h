@@ -8,15 +8,15 @@
 #include <iostream>  // @@ only for debug purposes
 #include <iterator>
 #include "common_defs.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 // ============================================================================
 // The template type should provide the four typedefs:
 // PointType, EdgeType, FaceType and VolumeType  
 template<typename BoundedSpaceTraits>
-class TesselableVolume
+class TessellableVolume
 // ============================================================================
 {
 public:
@@ -25,7 +25,7 @@ public:
   typedef typename BoundedSpaceTraits::FaceType   FaceType;
   typedef typename BoundedSpaceTraits::VolumeType VolumeType;
   
-  TesselableVolume(const std::vector<PointType>& c,
+  TessellableVolume(const std::vector<PointType>& c,
                      const std::vector<EdgeType>& e,
                      const std::vector<FaceType>& f,
                      const VolumeType& v) :
@@ -33,12 +33,12 @@ public:
   {}
 
   // Possible alternative constructor
-  template<typename ArgumentClass> TesselableVolume(ArgumentClass& arg);
+  template<typename ArgumentClass> TessellableVolume(ArgumentClass& arg);
       
   std::ostream& write (std::ostream& os) const;
-  void writeTesselatedOutline(std::ostream& os) const;
-  void writeTesselatedShell(std::ostream& os) const;
-  void writeTesselatedVolume(std::ostream& os) const;
+  void writeTessellatedOutline(std::ostream& os) const;
+  void writeTessellatedShell(std::ostream& os) const;
+  void writeTessellatedVolume(std::ostream& os) const;
   
   std::vector<PointType> cornerPoints() const;
   std::vector<PointType> edgePoints() const; // all edge points
@@ -49,8 +49,8 @@ public:
 
   std::vector<Tet> getTets() const { return volume_tets_;}
   
-  void tesselate(const double vdist); 
-  bool is_tesselated() const {return !edge_ipoints_.empty();}
+  void tessellate(const double vdist); 
+  bool is_tessellated() const {return !edge_ipoints_.empty();}
   
   uint numCorners() const { return (uint)corners_.size();}
   uint numEdges()   const { return (uint)edges_.size();}
@@ -75,18 +75,18 @@ private:
   void compute_global_edge_point_indices();
   void compute_global_face_point_indices();
 
-  // The following tesselating functions must be specifically implemented
+  // The following tessellating functions must be specifically implemented
   // for each particular choice of BoundedSpaceTraits.
-  static void compute_tesselation(const std::array<PointType, 2>& boundary,
+  static void compute_tessellation(const std::array<PointType, 2>& boundary,
                                   const EdgeType& edge,
                                   const double vdist,
                                   std::vector<PointType>& ipoints);
-  static void compute_tesselation(const std::vector<PointType>& boundary,
+  static void compute_tessellation(const std::vector<PointType>& boundary,
                                   const FaceType& face,
                                   const double vdist,
                                   std::vector<PointType>& ipoints,
                                   std::vector<Triangle>& triangles);
-  static void compute_tesselation(const std::vector<PointType>& bpoints,
+  static void compute_tessellation(const std::vector<PointType>& bpoints,
                                   const std::vector<Triangle>& btris,
                                   const VolumeType& volume,
                                   const double vdist,
@@ -100,7 +100,7 @@ private:
   std::vector<FaceType>  faces_;
   VolumeType volume_;
 
-  // the following propeties pertains to the tesselation, and will be created
+  // the following propeties pertains to the tessellation, and will be created
   // upon request
   std::vector<std::vector<PointType>> edge_ipoints_;
   std::vector<std::vector<PointType>> face_ipoints_;
@@ -114,12 +114,12 @@ private:
   std::vector<uint> face_ipoints_start_ixs_;  // global start index of the
                                               // corresponding face's internal
                                               // points
-}; // end struct TesselableVolume
+}; // end struct TessellableVolume
 
 
 // ----------------------------------------------------------------------------        
 template<typename BoundedSpaceTraits> inline void
-TesselableVolume<BoundedSpaceTraits>::compute_global_edge_point_indices() 
+TessellableVolume<BoundedSpaceTraits>::compute_global_edge_point_indices() 
 // ----------------------------------------------------------------------------
 {
   edge_ipoints_start_ixs_.resize(numEdges(), numCorners());
@@ -130,7 +130,7 @@ TesselableVolume<BoundedSpaceTraits>::compute_global_edge_point_indices()
 
 // ----------------------------------------------------------------------------        
 template<typename BoundedSpaceTraits> inline void
-TesselableVolume<BoundedSpaceTraits>::compute_global_face_point_indices() 
+TessellableVolume<BoundedSpaceTraits>::compute_global_face_point_indices() 
 // ----------------------------------------------------------------------------
 {
   face_ipoints_start_ixs_.resize(numFaces(), (uint)edgePoints().size());
@@ -142,8 +142,8 @@ TesselableVolume<BoundedSpaceTraits>::compute_global_face_point_indices()
   
 // ----------------------------------------------------------------------------        
 template<typename BoundedSpaceTraits> inline
-std::vector<typename TesselableVolume<BoundedSpaceTraits>::PointType>
-TesselableVolume<BoundedSpaceTraits>::faceBoundaryPoints(uint face_ix) const
+std::vector<typename TessellableVolume<BoundedSpaceTraits>::PointType>
+TessellableVolume<BoundedSpaceTraits>::faceBoundaryPoints(uint face_ix) const
 // ----------------------------------------------------------------------------
 {
   const std::vector<PointType> pts = edgePoints();
@@ -156,7 +156,7 @@ TesselableVolume<BoundedSpaceTraits>::faceBoundaryPoints(uint face_ix) const
   
 // ----------------------------------------------------------------------------      
 template<typename BoundedSpaceTraits> inline
-uint TesselableVolume<BoundedSpaceTraits>::numEdgePoints() const
+uint TessellableVolume<BoundedSpaceTraits>::numEdgePoints() const
 // ----------------------------------------------------------------------------
 {
   return numCorners() +
@@ -167,7 +167,7 @@ uint TesselableVolume<BoundedSpaceTraits>::numEdgePoints() const
 
 // ----------------------------------------------------------------------------      
 template<typename BoundedSpaceTraits> inline
-uint TesselableVolume<BoundedSpaceTraits>::numFacePoints() const
+uint TessellableVolume<BoundedSpaceTraits>::numFacePoints() const
 // ----------------------------------------------------------------------------
 {
   return numEdgePoints() +
@@ -178,7 +178,7 @@ uint TesselableVolume<BoundedSpaceTraits>::numFacePoints() const
 
 // ----------------------------------------------------------------------------      
 template<typename BoundedSpaceTraits> inline
-uint TesselableVolume<BoundedSpaceTraits>::numVolumePoints() const
+uint TessellableVolume<BoundedSpaceTraits>::numVolumePoints() const
 // ----------------------------------------------------------------------------
 {
   return numFacePoints() + (uint)volume_ipoints_.size();
@@ -186,7 +186,7 @@ uint TesselableVolume<BoundedSpaceTraits>::numVolumePoints() const
   
 // ----------------------------------------------------------------------------    
 template<typename BoundedSpaceTraits> inline
-void TesselableVolume<BoundedSpaceTraits>::update_triangle_indices()
+void TessellableVolume<BoundedSpaceTraits>::update_triangle_indices()
 // ----------------------------------------------------------------------------    
 {
   for (uint f_ix = 0; f_ix != numFaces(); ++f_ix) {
@@ -206,7 +206,7 @@ void TesselableVolume<BoundedSpaceTraits>::update_triangle_indices()
 
 // // ----------------------------------------------------------------------------    
 // template<typename BoundedSpaceTraits> inline
-// void TesselableVolume<BoundedSpaceTraits>::update_tet_indices()
+// void TessellableVolume<BoundedSpaceTraits>::update_tet_indices()
 // // ----------------------------------------------------------------------------    
 // {
 //   std::cout << "Warning: update_tet_indices() not yet implemented.  Skipping." << std::endl;
@@ -214,10 +214,10 @@ void TesselableVolume<BoundedSpaceTraits>::update_triangle_indices()
   
 // ----------------------------------------------------------------------------  
 template<typename BoundedSpaceTraits>
-inline void TesselableVolume<BoundedSpaceTraits>::tesselate(const double vdist)
+inline void TessellableVolume<BoundedSpaceTraits>::tessellate(const double vdist)
 // ----------------------------------------------------------------------------
 {
-  if (is_tesselated())
+  if (is_tessellated())
     return; // nothing more to do
 
   edge_ipoints_.resize(numEdges());
@@ -225,14 +225,14 @@ inline void TesselableVolume<BoundedSpaceTraits>::tesselate(const double vdist)
   face_triangles_.resize(numFaces());
   //volume_tets_.resize(numFaces());
 
-  // tesselate all edges
+  // tessellate all edges
   for (uint i = 0; i != numEdges(); ++i)
-    compute_tesselation(edgeCorners(i), edges_[i], vdist, edge_ipoints_[i]);
+    compute_tessellation(edgeCorners(i), edges_[i], vdist, edge_ipoints_[i]);
   compute_global_edge_point_indices();
   
-  // tesselate all faces
+  // tessellate all faces
   for (uint i = 0; i != numFaces(); ++i)
-    compute_tesselation(faceBoundaryPoints(i), faces_[i], vdist,
+    compute_tessellation(faceBoundaryPoints(i), faces_[i], vdist,
                         face_ipoints_[i], face_triangles_[i]);
   compute_global_face_point_indices();
   
@@ -240,8 +240,8 @@ inline void TesselableVolume<BoundedSpaceTraits>::tesselate(const double vdist)
   // make globally consistent indexing of points for the triangles
   update_triangle_indices();
 
-  // tesselate the volume
-  compute_tesselation(facePoints(), flatten(face_triangles_),
+  // tessellate the volume
+  compute_tessellation(facePoints(), flatten(face_triangles_),
                       volume_, vdist, volume_ipoints_, volume_tets_);
 
   // remove already-existing boundary points from volume_ipoints_
@@ -254,7 +254,7 @@ inline void TesselableVolume<BoundedSpaceTraits>::tesselate(const double vdist)
   
 // ----------------------------------------------------------------------------
 template<typename BoundedSpaceTraits>  
-std::ostream& TesselableVolume<BoundedSpaceTraits>::write(std::ostream& os) const
+std::ostream& TessellableVolume<BoundedSpaceTraits>::write(std::ostream& os) const
 // ----------------------------------------------------------------------------
 {
   // streaming basic information
@@ -262,7 +262,7 @@ std::ostream& TesselableVolume<BoundedSpaceTraits>::write(std::ostream& os) cons
   for (const auto e : edges_)   os << e;  os << '\n';
   for (const auto f : faces_)   os << f;  os << '\n';
 
-  // streaming tesselation information, if any
+  // streaming tessellation information, if any
   for (const auto eip : edge_ipoints_)
     for (const auto ip : eip) os << ip; os << '\n';
   for (const auto fip : face_ipoints_)
@@ -278,7 +278,7 @@ std::ostream& TesselableVolume<BoundedSpaceTraits>::write(std::ostream& os) cons
 // ----------------------------------------------------------------------------
 template<typename BoundedSpaceTraits> inline
 std::ostream&
-operator<<(std::ostream& os, const TesselableVolume<BoundedSpaceTraits>& tv)
+operator<<(std::ostream& os, const TessellableVolume<BoundedSpaceTraits>& tv)
 // ----------------------------------------------------------------------------
 {
   return tv.write(os);
@@ -286,8 +286,8 @@ operator<<(std::ostream& os, const TesselableVolume<BoundedSpaceTraits>& tv)
 
 // ----------------------------------------------------------------------------  
 template<typename BoundedSpaceTraits> inline
-std::vector<typename TesselableVolume<BoundedSpaceTraits>::PointType>
-TesselableVolume<BoundedSpaceTraits>::cornerPoints() const
+std::vector<typename TessellableVolume<BoundedSpaceTraits>::PointType>
+TessellableVolume<BoundedSpaceTraits>::cornerPoints() const
 // ----------------------------------------------------------------------------  
 {
   return corners_;
@@ -295,8 +295,8 @@ TesselableVolume<BoundedSpaceTraits>::cornerPoints() const
 
 // ----------------------------------------------------------------------------  
 template<typename BoundedSpaceTraits> inline
-std::vector<typename TesselableVolume<BoundedSpaceTraits>::PointType>
-TesselableVolume<BoundedSpaceTraits>::edgePoints() const
+std::vector<typename TessellableVolume<BoundedSpaceTraits>::PointType>
+TessellableVolume<BoundedSpaceTraits>::edgePoints() const
 // ----------------------------------------------------------------------------  
 {
   std::vector<PointType> tmp(corners_);
@@ -307,8 +307,8 @@ TesselableVolume<BoundedSpaceTraits>::edgePoints() const
 
 // ----------------------------------------------------------------------------  
 template<typename BoundedSpaceTraits> inline
-std::vector<typename TesselableVolume<BoundedSpaceTraits>::PointType>
-TesselableVolume<BoundedSpaceTraits>::facePoints() const
+std::vector<typename TessellableVolume<BoundedSpaceTraits>::PointType>
+TessellableVolume<BoundedSpaceTraits>::facePoints() const
 // ----------------------------------------------------------------------------  
 {
   std::vector<PointType> tmp(edgePoints());
@@ -319,8 +319,8 @@ TesselableVolume<BoundedSpaceTraits>::facePoints() const
 
 // ----------------------------------------------------------------------------  
 template<typename BoundedSpaceTraits> inline
-std::vector<typename TesselableVolume<BoundedSpaceTraits>::PointType>
-TesselableVolume<BoundedSpaceTraits>::volumePoints() const
+std::vector<typename TessellableVolume<BoundedSpaceTraits>::PointType>
+TessellableVolume<BoundedSpaceTraits>::volumePoints() const
 // ----------------------------------------------------------------------------
 {
   std::vector<PointType> tmp(facePoints());
@@ -330,8 +330,8 @@ TesselableVolume<BoundedSpaceTraits>::volumePoints() const
 
 // ----------------------------------------------------------------------------
 template<typename BoundedSpaceTraits> inline
-std::vector<typename TesselableVolume<BoundedSpaceTraits>::PointType>
-TesselableVolume<BoundedSpaceTraits>::edgePoints(uint edge_ix) const
+std::vector<typename TessellableVolume<BoundedSpaceTraits>::PointType>
+TessellableVolume<BoundedSpaceTraits>::edgePoints(uint edge_ix) const
 // ----------------------------------------------------------------------------
 {
   const auto endpoints = edgeCorners(edge_ix);
@@ -344,8 +344,8 @@ TesselableVolume<BoundedSpaceTraits>::edgePoints(uint edge_ix) const
 
 // ----------------------------------------------------------------------------
 template<typename BoundedSpaceTraits> inline
-std::vector<typename TesselableVolume<BoundedSpaceTraits>::PointType>
-TesselableVolume<BoundedSpaceTraits>::facePoints(uint face_ix) const
+std::vector<typename TessellableVolume<BoundedSpaceTraits>::PointType>
+TessellableVolume<BoundedSpaceTraits>::facePoints(uint face_ix) const
 // ----------------------------------------------------------------------------  
 {
   std::vector<PointType> result(faceBoundaryPoints(face_ix));
@@ -356,8 +356,8 @@ TesselableVolume<BoundedSpaceTraits>::facePoints(uint face_ix) const
 
 // ----------------------------------------------------------------------------
 template<typename BoundedSpaceTraits> inline
-std::array<typename TesselableVolume<BoundedSpaceTraits>::PointType, 2>
-TesselableVolume<BoundedSpaceTraits>::edgeCorners(uint edge_ix) const
+std::array<typename TessellableVolume<BoundedSpaceTraits>::PointType, 2>
+TessellableVolume<BoundedSpaceTraits>::edgeCorners(uint edge_ix) const
 // ----------------------------------------------------------------------------
 {
   const auto ixs = edgeCornerIndices(edge_ix);
@@ -366,10 +366,10 @@ TesselableVolume<BoundedSpaceTraits>::edgeCorners(uint edge_ix) const
 
 // ----------------------------------------------------------------------------
 template<typename BoundedSpaceTraits> inline
-void TesselableVolume<BoundedSpaceTraits>::writeTesselatedOutline(std::ostream& os) const
+void TessellableVolume<BoundedSpaceTraits>::writeTessellatedOutline(std::ostream& os) const
 // ----------------------------------------------------------------------------  
 {
-  // write all tesselated edges on a easily plottable format
+  // write all tessellated edges on a easily plottable format
 
   // first, write all corner points
   for (const auto& c: corners_) os << c << '\n';
@@ -387,7 +387,7 @@ void TesselableVolume<BoundedSpaceTraits>::writeTesselatedOutline(std::ostream& 
 
     // write end point index, and start point index of next segment (which is
     // the same point)
-    if (is_tesselated()) {
+    if (is_tessellated()) {
       const uint start_ix = edge_ipoints_start_ixs_[edge_ix];
       for (uint ip_ix = 0; ip_ix != (uint)edge_ipoints_[edge_ix].size(); ++ip_ix)
         os << start_ix + ip_ix << '\n' << start_ix + ip_ix << ' ';
@@ -401,7 +401,7 @@ void TesselableVolume<BoundedSpaceTraits>::writeTesselatedOutline(std::ostream& 
 
 // ----------------------------------------------------------------------------
 template<typename BoundedSpaceTraits> inline
-void TesselableVolume<BoundedSpaceTraits>::writeTesselatedShell(std::ostream& os) const
+void TessellableVolume<BoundedSpaceTraits>::writeTessellatedShell(std::ostream& os) const
 // ----------------------------------------------------------------------------
 {
   // writing points
@@ -419,7 +419,7 @@ void TesselableVolume<BoundedSpaceTraits>::writeTesselatedShell(std::ostream& os
 
 // ----------------------------------------------------------------------------
 template<typename BoundedSpaceTraits> inline
-void TesselableVolume<BoundedSpaceTraits>::writeTesselatedVolume(std::ostream& os) const
+void TessellableVolume<BoundedSpaceTraits>::writeTessellatedVolume(std::ostream& os) const
 // ----------------------------------------------------------------------------
 {
   // writing points
@@ -436,7 +436,7 @@ void TesselableVolume<BoundedSpaceTraits>::writeTesselatedVolume(std::ostream& o
 
 
 
-}; // end namespace TesselateUtils
+}; // end namespace TessellateUtils
 
 
 #endif

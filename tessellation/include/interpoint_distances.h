@@ -4,9 +4,9 @@
 #include <functional>
 #include <vector>
 #include "common_defs.h"
-#include "tesselate_utils.h"
+#include "tessellate_utils.h"
 
-namespace TesselateUtils {
+namespace TessellateUtils {
 
 struct DistanceEntry {
   uint p1_ix; 
@@ -57,7 +57,7 @@ std::vector<DistanceEntry> interpoint_distances(const PointXD* points,
 						const uint num_other_points,
 						const double R);
 
-}; //end namespace TesselateUtils
+}; //end namespace TessellateUtils
 
 #include "interpoint_distances_impl.h"
 
