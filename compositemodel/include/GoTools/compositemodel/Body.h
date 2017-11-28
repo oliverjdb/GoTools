@@ -65,13 +65,13 @@ namespace Go
 
 	    /// Constructor with multiple shells
 	    Body(std::vector<shared_ptr<SurfaceModel> >& shells, 
-		 int material_id=-1);
+		 const vector<int>& material_id=vector<int>());
 
 	    /* /// Constructor with one outer shell */
 	    /* Body(const CoordinateSystem<3> xyz, shared_ptr<SurfaceModel> shell); */
 
 	    /// Constructor with one outer shell
-	    Body(shared_ptr<SurfaceModel> shell, int material_id=-1);
+	    Body(shared_ptr<SurfaceModel> shell, const vector<int>& material_id=vector<int>());
 
 	    /// Constructor given a boundary represented solid
 	    Body(shared_ptr<Body> body);
@@ -119,20 +119,40 @@ namespace Go
 	    }
 
 	    /// Material information
-	    void setMaterial(int material_id)
+	    // Single homogeneous material
+            void setMaterial(int material_id)
 	    {
-	      material_id_ = material_id;
+	      material_id_.resize(1,material_id);
 	    }
+            // Multiple materials
+            void setMaterial(std::vector<int> material_id)
+            {
+              material_id_ = material_id;
+            }
 
 	    bool hasMaterialInfo() const
 	    {
-	      return (material_id_ >= 0);
+	      return (material_id_.size() > 0);
 	    }
+
+            // Default is not graded
+            virtual bool isMaterialGraded() const 
+            {
+              return false;
+            } 
 	    
-	    int getMaterial() const
-	    {
-	      return material_id_;
+	    vector<int> getMaterial() const
+	    { 
+              if (hasMaterialInfo()) return material_id_;
+              else THROW("Material is not set");
 	    }
+
+            virtual vector<double> evaluateMaterialDistribution(double upar, double vpar, double wpar) const
+            {
+              // Assume a uniform mixture of materials if no distribution is specified
+              if (hasMaterialInfo()) return vector<double>(material_id_.size(),1.0/material_id_.size());
+              else THROW("Material is not set");
+            }
 
 	    /// Total number of faces
 	    int nmbOfFaces() const;
@@ -179,9 +199,12 @@ namespace Go
 	    /// Outer and possibly inner void shells
 	    std::vector<shared_ptr<SurfaceModel> > shells_;
 
-	    /// Possibility to store material information (-1 = not set)
-	    int material_id_;
-
+	    /// Possibility to store material information
+	    // If the vector is empty the material is not set
+            // If the vector has one element, the material is homogeneous
+            // If the vector has more than one element, the material is heterogeneous 
+            std::vector<int> material_id_;
+ 
 	    /// Tolerances used in topology analysis
 	    // These tolerances needs to be stored with the class as a topology
 	    // structure may become obsolete if the tolerances change

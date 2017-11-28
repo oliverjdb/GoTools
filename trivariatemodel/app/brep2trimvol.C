@@ -66,7 +66,7 @@ int main(int argc, char* argv[] )
 
   double gap, neighbour, kink;
   shared_ptr<SurfaceModel> sfmodel;
-  int material_id = -1;
+  vector<int> material_id;
   if (type_in == 2)
     {
       VolumeModelFileHandler fileread;

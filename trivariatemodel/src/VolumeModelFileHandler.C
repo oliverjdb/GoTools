@@ -159,8 +159,23 @@ void VolumeModelFileHandler::writeVolume(const shared_ptr<ftVolume>& body,
   vector<shared_ptr<SurfaceModel> > sfmod;
   os << "\n" << indent_ << "<Volume ID=\"" << body_id << "\">\n";
   os << indent_ << indent_ << "<Geovolume>" << volume_id << "</Geovolume>\n";
-  if (body->getMaterial() >= 0)
-    os << indent_ << indent_ << "<Material>" << body->getMaterial() <<  "</Material>\n";    
+  if (body->hasMaterialInfo()) {
+    os << indent_ << indent_ << "<Material>\n"; 
+    os << indent_ << indent_ << indent_ << "<MaterialIDs>";
+    vector<int> mats = body->getMaterial();
+    os << mats.size();
+    for (size_t ix=0;ix!=mats.size(); ++ix) os << " " << mats[ix];
+    os << "</MaterialIDs>\n";
+  if (body->isMaterialGraded()) {
+    shared_ptr<ParamVolume> mat_dist = body->getMaterialDistribution();
+    os << indent_ << indent_ << indent_ << "<MaterialDistribution>\n";
+    mat_dist->writeStandardHeader(os);
+    mat_dist->write(os);
+    os << indent_ << indent_ << indent_ << "</MaterialDistribution>\n";
+  }
+    os << indent_ << indent_ <<  "</Material>\n";    
+  }
+ 
   os << indent_ << indent_ << "<Shells>" << nmb_shells;
   for (int ki = 0; ki < nmb_shells; ++ki)
     {
@@ -289,13 +304,37 @@ VolumeModelFileHandler::readVolumes(const char* filein)
 
       // Material
       pugi::xml_node material_node = node.child("Material");
-      int material_val = -1;
+      vector<int> material_vals;
+      shared_ptr<SplineVolume> material_dist = nullptr;
       if (material_node)
-	{
-	  const std::string material_string = material_node.child_value();
-	  std::istringstream material_ss(material_string);
-	  material_ss >> material_val;
-	}
+        {
+          pugi::xml_node material_id_node = material_node.child("MaterialIDs");
+          // Read material IDs
+          if (material_id_node) {
+            const std::string materialid_string = material_id_node.child_value();
+            std::istringstream materialid_ss(materialid_string);
+            int num_mats;
+            materialid_ss >> num_mats;
+            for (int mx=0; mx!=num_mats; ++mx) {
+              int material_id;
+              materialid_ss >> material_id;
+              material_vals.push_back(material_id);
+            }
+          }
+          pugi::xml_node material_dist_node = material_node.child("MaterialDistribution");
+          // Read material distribution (only spline volumes supported)
+          if (material_dist_node) {
+            std::string mat_dist_string = material_dist_node.child_value();
+            std::istringstream mat_dist_stream(mat_dist_string);
+            ObjectHeader obj_header;
+            obj_header.read(mat_dist_stream);
+            if (obj_header.classType() == Class_SplineVolume) {
+              material_dist = std::make_shared<SplineVolume>();
+              material_dist->read(mat_dist_stream);
+            }
+            else MESSAGE("Material distribution not of type SplineVolume. Will not be read.");
+          }
+        }
 
       // Read all shells
       pugi::xml_node shell_nodes = node.child("Shells");
@@ -314,7 +353,8 @@ VolumeModelFileHandler::readVolumes(const char* filein)
 
       // Create Body
       shared_ptr<ftVolume>body(new ftVolume(vol, shells));
-      body->setMaterial(material_val);
+      body->setMaterial(material_vals);
+      body->setMaterialDistribution(material_dist);
 
       // Set body pointers in all associated faces
       int nmb1 = body->nmbOfShells();
@@ -376,13 +416,37 @@ VolumeModelFileHandler::readVolume(const char* filein, int id)
 
       // Material
       pugi::xml_node material_node = node.child("Material");
-      int material_val = -1;
+      vector<int> material_vals;
+      shared_ptr<SplineVolume> material_dist = nullptr;
       if (material_node)
-	{
-	  const std::string material_string = material_node.child_value();
-	  std::istringstream material_ss(material_string);
-	  material_ss >> material_val;
-	}
+	{ 
+          pugi::xml_node material_id_node = material_node.child("MaterialIDs");
+          // Read material IDs
+          if (material_id_node) { 
+            const std::string materialid_string = material_id_node.child_value();
+	    std::istringstream materialid_ss(materialid_string);
+            int num_mats;
+            materialid_ss >> num_mats;
+            for (int mx=0; mx!=num_mats; ++mx) { 
+              int material_id;
+	      materialid_ss >> material_id;
+              material_vals.push_back(material_id);
+            }
+          } 
+          pugi::xml_node material_dist_node = material_node.child("MaterialDistribution");
+          // Read material distribution (only spline volumes supported)
+	  if (material_dist_node) {
+	    std::string mat_dist_string = material_dist_node.child_value();
+	    std::istringstream mat_dist_stream(mat_dist_string);
+            ObjectHeader obj_header;
+	    obj_header.read(mat_dist_stream);
+	    if (obj_header.classType() == Class_SplineVolume) {
+	      material_dist = std::make_shared<SplineVolume>();
+	      material_dist->read(mat_dist_stream);
+	    }
+            else MESSAGE("Material distribution not of type SplineVolume. Will not be read.");
+          }
+	}	
 
       // Read all shells
       pugi::xml_node shell_nodes = node.child("Shells");
@@ -401,8 +465,8 @@ VolumeModelFileHandler::readVolume(const char* filein, int id)
 
       // Create Body
       body = shared_ptr<ftVolume>(new ftVolume(vol, shells));
-      body->setMaterial(material_val);
-
+      body->setMaterial(material_vals);
+      body->setMaterialDistribution(material_dist);
       // Set body pointers in all associated faces
       int nmb1 = body->nmbOfShells();
       for (int ki=0; ki<nmb1; ++ki)

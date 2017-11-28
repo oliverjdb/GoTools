@@ -143,8 +143,15 @@ void CompositeModelFileHandler::writeBody(shared_ptr<Body>& body,
     // We start from the top, writing the body (list of shells).
   int nmb_shells = body->nmbOfShells();
   os << "\n" << indent_ << "<Body ID=\"" << body_id << "\">\n";
-  if (body->getMaterial() >= 0)
-    os << indent_ << indent_ << "<Material>" << body->getMaterial() <<  "</Material>\n";    
+  if (body->hasMaterialInfo()) {
+    os << indent_ << indent_ << "<Material>\n";
+    os << indent_ << indent_ << indent_ << "<MaterialIDs>";
+    vector<int> mats = body->getMaterial();
+    os << mats.size();
+    for (size_t ix=0;ix!=mats.size(); ++ix) os << " " << mats[ix];
+    os << "<MaterialIDs>\n";
+    os << indent_ << indent_ << "</Material>\n";    
+  }
   os << indent_ << indent_ << "<Shells>" << nmb_shells;
   for (int ki = 0; ki < nmb_shells; ++ki)
     {
@@ -854,13 +861,23 @@ CompositeModelFileHandler::readSurface(const char* filein)
 
       // Read body properties 
       pugi::xml_node material_node = node.child("Material");
-      int material_val = -1;
+      vector<int> material_vals;
       if (material_node)
-	{
-	  const std::string material_string = material_node.child_value();
-	  std::istringstream material_ss(material_string);
-	  material_ss >> material_val;
-	}
+        {
+          pugi::xml_node material_id_node = material_node.child("MaterialIDs");
+          // Read material IDs
+          if (material_id_node) {
+            const std::string materialid_string = material_id_node.child_value();
+            std::istringstream materialid_ss(materialid_string);
+            int num_mats;
+            materialid_ss >> num_mats;
+            for (int mx=0; mx!=num_mats; ++mx) {
+              int material_id;
+              materialid_ss >> material_id;
+              material_vals.push_back(material_id);
+            }
+          }
+        }
 
       // Read all shells
       pugi::xml_node shell_nodes = node.child("Shells");
@@ -878,7 +895,7 @@ CompositeModelFileHandler::readSurface(const char* filein)
 	}
 
       // Create Body
-      body = shared_ptr<Body>(new Body(shells, material_val));
+      body = shared_ptr<Body>(new Body(shells, material_vals));
 
       // Set body pointers in all associated faces
       int nmb1 = body->nmbOfShells();

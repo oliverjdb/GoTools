@@ -62,7 +62,9 @@ int main( int argc, char* argv[] )
   std::cout << "Neighbour: " << toptol.neighbour << std::endl;
   std::cout << "Kink: " << toptol.kink << std::endl;
   std::cout << "Bend: " << toptol.bend << std::endl;
-  std::cout << "Material: " << body->getMaterial() << std::endl;
+  vector<int> mats = body->getMaterial(); 
+  std::cout << "MaterialIDs: ";
+  for (size_t ix=0;ix!=mats.size(); ++ix) std::cout << mats[ix] << " ";   
 }
  
 
