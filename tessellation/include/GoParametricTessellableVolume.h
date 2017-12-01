@@ -60,6 +60,7 @@ struct GoParametricSpaceTraits {
 
   //typedef std::pair<FaceSurface, vector<std::pair<uint, bool>>> FaceType; 
   typedef std::shared_ptr<const Go::ParamVolume>  VolumeType;
+  typedef std::shared_ptr<const Go::ParamVolume>  MaterialType;
 };
 
   

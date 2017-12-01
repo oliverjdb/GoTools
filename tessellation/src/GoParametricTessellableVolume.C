@@ -53,6 +53,7 @@ GoParametricTessellableVolume::TessellableVolume(ftVolume& fvol)
   
   // Setting the parametric volume
   volume_ = fvol.getVolume();
+  if (fvol.isMaterialGraded()) material_ = fvol.getMaterialDistribution();
 
   // setting the corners (vertices)
   const auto vertices = fvol.vertices(); // shared_ptrs to vertices
@@ -200,7 +201,7 @@ compute_tessellation(const vector<PointType>& boundary,
   // fix orientation of triangles if necessary
 }
 
-  
+
 // ----------------------------------------------------------------------------  
 template<>
 void GoParametricTessellableVolume::
@@ -242,13 +243,74 @@ compute_tessellation(const vector<PointType>& bpoints,
             [](const Point3D& p) {return Go::Point(p[0], p[1], p[2]);});
 
   // computing interior point parameters
-  const vector<Point3D> par = compute_volume_parameters(ipoints_go, volume); 
+  const vector<Point3D> par = compute_volume_parameters(ipoints_go, volume);
   //const vector<Point3D> par(ipoints_go.size(), {0, 0, 0});
-  
+
   ipoints.resize(N);
-  for (uint i = 0; i != N; ++i) 
+  for (uint i = 0; i != N; ++i)
     ipoints[i] = PointType(ipoints_go[i], par[i]);
 
+  tets = m3D.tets;
+
+  // ipoints = bpoints;
+}
+
+  
+// ----------------------------------------------------------------------------  
+template<>
+void GoParametricTessellableVolume::
+compute_tessellation(const vector<PointType>& bpoints,
+                    const vector<Triangle>& btris,
+                    const VolumeType& volume,
+                    const MaterialType& material,
+                    const double vdist,
+                    vector<PointType>& ipoints,
+                    vector<PointType>& imaterials,
+                    vector<Tet>& tets)
+// ----------------------------------------------------------------------------  
+{
+  // There is currently no parameter-based volume tessellation - the tessellation
+  // is done directly in 3D space, and the corresponding parameters computed in
+  // a second step.  Unlike the curve and surface case, it is possible to
+  // tessellate the entity directly in 3D space, as we are here tessellating a
+  // manifold that is not embedded in a higher-dimensional space.  On the other
+  // hand, it might be more computationally efficient to tessellate in parameter
+  // space (as in the curve and surface case), since we would then not need to
+  // compute the parameters post-hoc.  So this could be considered later.
+
+  // First, convert the boundary points to Point3D so that the polyhedron
+  // tessellation routine can be called.
+  vector<Point3D> bp3D(bpoints.size());
+  transform(bpoints.begin(), bpoints.end(), bp3D.begin(),
+            [&volume] (const PointType& p) {
+              return Point3D {p.pos[0], p.pos[1], p.pos[2]};});
+
+  const Mesh3D m3D = tessellatePolyhedron3D(&bp3D[0],
+                                           (uint)bp3D.size(),
+                                           &btris[0],
+                                           (uint)btris.size(),
+                                           vdist);
+
+  const uint N = (uint)m3D.points.size(); // number of interior points
+
+  // converting interior points to Go::Point
+  vector<Go::Point> ipoints_go(N);
+  transform(m3D.points.begin(), m3D.points.end(), ipoints_go.begin(),
+            [](const Point3D& p) {return Go::Point(p[0], p[1], p[2]);});
+
+  // computing interior point parameters
+  const vector<Point3D> par = compute_volume_parameters(ipoints_go, volume); 
+  //const vector<Point3D> par(ipoints_go.size(), {0, 0, 0});
+
+  // Post sample the materials 
+  ipoints.resize(N);
+  imaterials.resize(N);
+  for (uint i = 0; i != N; ++i) {
+    Go::Point pt;
+    material->point(pt,par[i][0],par[i][1],par[i][2]);
+    imaterials[i] = PointType(pt,par[i]);
+    ipoints[i] = PointType(ipoints_go[i], par[i]);
+  }
   tets = m3D.tets;
 
   // ipoints = bpoints;
