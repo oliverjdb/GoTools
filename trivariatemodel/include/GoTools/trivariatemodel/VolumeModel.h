@@ -111,13 +111,22 @@ namespace Go
 			int nder,     // Number of derivatives to compute, 0=only position
 			std::vector<Point>& der) const;  // Result
 
-  /// Compute one closest point, interface heritage, not implemented
+  /// Compute one closest point, interface from CompositeModel
   virtual void
     closestPoint(Point& pnt,     // Input point
 		 Point& clo_pnt, // Found closest point
 		 int& idx,           // Index of surface where the closest point is found
 		 double clo_par[],   // Parameter value corrsponding to the closest point
 		 double& dist);  // Distance between input point and found closest point
+
+  /// Compute one closest point, returning the index to the ftVolume and the volume 
+  /// parameters with the closest point, as well as the point itself 
+  virtual void closestPoint(Point& pt, 
+                            int& idx,
+                            double&  u, double&  v, double&  w, 
+                            Point& clo_pt, 
+                            double&  clo_dist, 
+                            double   epsilon) const;      
 
   /// Intersection with a line, interface heritage, not implemented. 
   /// Expected output is points, probably one point. Curves 

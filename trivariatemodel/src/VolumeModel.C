@@ -266,14 +266,46 @@ void VolumeModel:: evaluate(int idx,      // Index
 }
 
 //===========================================================================
-void VolumeModel::closestPoint(Point& pnt,     // Input point
-		 Point& clo_pnt, // Found closest point
+void VolumeModel::closestPoint(Point& pt,     // Input point
+		 Point& clo_pt, // Found closest point
 		 int& idx,           // Index of volume where the closest point is found
 		 double clo_par[],   // Parameter value corrsponding to the closest point
 		 double& dist)  // Distance between input point and found closest point
+
 //===========================================================================
 {
-  // Not implemented
+  // eps is hardcoded for this interface
+  VolumeModel::closestPoint(pt, idx, clo_par[0], clo_par[1], clo_par[2], clo_pt, dist, 1.0e-8);
+}
+
+//===========================================================================
+void VolumeModel::closestPoint(Point& pt,   // input point
+		               int& idx,   // Index of volume where the closest point is found
+		               double& clo_u, double& clo_v, double& clo_w,               
+                               Point& clo_pt,   // Found closest point
+		               double& clo_dist,   // distance between clo_pt and pt
+                               double eps) const
+//===========================================================================
+{
+  // Simple implementation, can be improved with e.g. octrees 
+  idx = -1;
+  int num_en = (int) bodies_.size(); //nmbEntities();
+  clo_dist = std::numeric_limits<double>::max();
+  for (int ix=0;ix!=num_en;++ix) {
+    BoundingBox bb = bodies_[ix]->boundingBox();
+    if (bb.containsPoint(pt,eps)) {
+      double u,v,w, d;
+      Point t_clo_pt;
+      // Run closest point on ftVolume
+      bodies_[ix]->closestPoint(pt,u,v,w,t_clo_pt,d,eps);
+      if (d < clo_dist) {
+        clo_dist = d; 
+        idx = ix;
+        clo_u = u, clo_v = v, clo_w = w;
+        clo_pt = t_clo_pt;
+      }
+    }
+  }
 }
 
 //===========================================================================
