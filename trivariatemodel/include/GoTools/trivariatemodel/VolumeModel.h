@@ -123,10 +123,12 @@ namespace Go
   /// parameters with the closest point, as well as the point itself 
   virtual void closestPoint(Point& pt, 
                             int& idx,
-                            double&  u, double&  v, double&  w, 
+                            double& u, double& v, double& w, 
                             Point& clo_pt, 
-                            double&  clo_dist, 
-                            double   epsilon) const;      
+                            double& clo_dist, 
+                            double  epsilon,
+                            int seed_ix = -1,
+                            double* seed = 0) const;      
 
   /// Intersection with a line, interface heritage, not implemented. 
   /// Expected output is points, probably one point. Curves 

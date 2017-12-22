@@ -284,18 +284,35 @@ void VolumeModel::closestPoint(Point& pt,   // input point
 		               double& clo_u, double& clo_v, double& clo_w,               
                                Point& clo_pt,   // Found closest point
 		               double& clo_dist,   // distance between clo_pt and pt
-                               double eps) const
+                               double eps,
+                               int seed_idx, 
+                               double* seed) const
 //===========================================================================
 {
   // Simple implementation, can be improved with e.g. octrees 
   idx = -1;
+  
+  // Values to be computed
+  double u,v,w, d;
+  Point t_clo_pt;
+  if (seed_idx != -1) {   
+    // Run closest point on the assumed same ftVolume 
+    bodies_[seed_idx]->closestPoint(pt,u,v,w,t_clo_pt,d,eps,seed);
+    if (fabs(d) < eps ) {
+      clo_dist = d;
+      idx = seed_idx;
+      clo_u = u, clo_v = v, clo_w = w;
+      clo_pt = t_clo_pt;
+      return; 
+    }
+  }
+ 
+  // Seed index was wrong, search through everything. 
   int num_en = (int) bodies_.size(); //nmbEntities();
   clo_dist = std::numeric_limits<double>::max();
   for (int ix=0;ix!=num_en;++ix) {
     BoundingBox bb = bodies_[ix]->boundingBox();
     if (bb.containsPoint(pt,eps)) {
-      double u,v,w, d;
-      Point t_clo_pt;
       // Run closest point on ftVolume
       bodies_[ix]->closestPoint(pt,u,v,w,t_clo_pt,d,eps);
       if (d < clo_dist) {
@@ -307,6 +324,7 @@ void VolumeModel::closestPoint(Point& pt,   // input point
     }
   }
 }
+
 
 //===========================================================================
 shared_ptr<IntResultsModel> VolumeModel::intersect(const ftLine& line)
