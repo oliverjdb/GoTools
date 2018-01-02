@@ -3,11 +3,15 @@
 #include <fstream>
 #include <string>
 #include <chrono>
+#include <random>
 #include "GoTools/trivariatemodel/lodepng.h"
 #include "GoTools/trivariatemodel/VolumeModelFileHandler.h"
 using namespace Go;
 using namespace std;
 using namespace std::chrono;
+
+
+enum MaterialMixType{BLENDING, DITHERING}; 
 
 int main() {
 
@@ -19,11 +23,15 @@ int main() {
 
   int print_dir = 1; // the print direction is y
 
+  MaterialMixType mix_type = DITHERING;
  
   BoundingBox bb = vm->boundingBox();
   cout << bb << endl;
 
-
+  // Random number generator for dithering
+  std::uniform_real_distribution<double> ran(0.0, 1.0);
+  std::default_random_engine dom;
+ 
   // Image (x,y) and layer resolution
   unsigned int resx;
   unsigned int resy;
@@ -34,9 +42,10 @@ int main() {
   Point vgstep = bb.high()-bb.low();
 
 #if 1 //GEO_RES_SPECIFIED
-  stepx = 0.04233; // Stratasys specs
-  stepy = 0.08466; // Stratasys specs
-  layerstep = 0.027; // Stratasys specs
+  double res_factor = 10; // used to speed up for debugging
+  stepx = 0.04233*res_factor; // Stratasys specs
+  stepy = 0.08466*res_factor; // Stratasys specs
+  layerstep = 0.027*res_factor; // Stratasys specs
   layerres = (unsigned int) (bb.high()[print_dir]-bb.low()[print_dir]) / layerstep;
   resx = (unsigned int) (bb.high()[(print_dir+1)%3]-bb.low()[(print_dir+1)%3]) / stepx;
   resy = (unsigned int) (bb.high()[(print_dir+2)%3]-bb.low()[(print_dir+2)%3]) / stepy;
@@ -78,7 +87,7 @@ int main() {
     // Set output filename
     stringstream ss;
     ss << iz; //setfill('0') << setw(4) << iz;
-    string slayername = string("GearResLayer_")+ss.str()+string(".png");
+    string slayername = string("GearResLayer_tmp")+ss.str()+string(".png");
     const char* layername = slayername.c_str();
     cout << layername << endl;
     unsigned error = lodepng::encode(layername, im, resx, resy);
@@ -104,23 +113,35 @@ int main() {
         last_uvw[3*(iy*resx+ix)] = u;
         last_uvw[3*(iy*resx+ix)+1] = v;
         last_uvw[3*(iy*resx+ix)+2] = w; 
+      
+        im[4*resx*iy+4*ix+0] = 0;
+        im[4*resx*iy+4*ix+1] = 0;
+        im[4*resx*iy+4*ix+2] = 0;
+        im[4*resx*iy+4*ix+3] = 255;
+        
         if (fabs(d) < eps && clpidx != -1) {
            shared_ptr<ftVolume> testVolume = vm->getBody(clpidx);  
            vector<double> mpt = testVolume->evaluateMaterialDistribution(u,v,w);
-           im[4*resx*iy+4*ix+0] = (unsigned char) (512*mpt[0]);
-           im[4*resx*iy+4*ix+1] = 0;
-           im[4*resx*iy+4*ix+2] = (unsigned char) (255*mpt[1]);
-           im[4*resx*iy+4*ix+3] = 255;
+           if (mix_type == DITHERING) {
+             double random = ran(dom);
+             if (mpt.size() > 0 && random < mpt[0] )                   im[4*resx*iy+4*ix+0] = (unsigned char) (255);
+             else if (mpt.size() > 1 && random < mpt[0]+mpt[1])        im[4*resx*iy+4*ix+1] = (unsigned char) (255);
+             else if (mpt.size() > 2 && random < mpt[0]+mpt[1]+mpt[2]) im[4*resx*iy+4*ix+2] = (unsigned char) (255);
+           }
+           else if (mix_type == BLENDING) {
+             //cout << "BLENDING" << endl;
+             if (mpt.size() > 0) im[4*resx*iy+4*ix+0] = (unsigned char) (255*mpt[0]);
+             if (mpt.size() > 1) im[4*resx*iy+4*ix+1] = (unsigned char) (255*mpt[1]);
+             if (mpt.size() > 2) im[4*resx*iy+4*ix+2] = (unsigned char) (255*mpt[2]);
+             //cout << (int) im[4*resx*iy+4*ix+0] << " ";
+           } 
+           else {
+             std::cerr << "MaterialMixType not defined\n"; 
+             return -1;
+           }
            //if (mpt[0] < 0.2 ) cout << "O";
            //else cout << "X";
         }
-        else {
-           //cout << "-";
-           im[4*resx*iy+4*ix+0] = 0;
-           im[4*resx*iy+4*ix+1] = 0;
-           im[4*resx*iy+4*ix+2] = 0;
-           im[4*resx*iy+4*ix+3] = 255;
-        }  
       } 
       //cout << endl;
     }
