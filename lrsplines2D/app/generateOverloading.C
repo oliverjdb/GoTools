@@ -37,33 +37,50 @@
  * written agreement between you and SINTEF ICT. 
  */
 
-#ifndef _LRSPLINEPLOTUTILS_H
-#define _LRSPLINEPLOTUTILS_H
-
-
+#include "GoTools/geometry/ObjectHeader.h"
+#include "GoTools/geometry/PointCloud.h"
 #include "GoTools/lrsplines2D/LRSplineSurface.h"
+#include "GoTools/lrsplines2D/LRSplineEvalGrid.h"
+#include "GoTools/lrsplines2D/LRSplineUtils.h"
+#include "GoTools/lrsplines2D/LinDepUtils.h"
+#include "GoTools/lrsplines2D/LRSplinePlotUtils.h"
+
 #include <iostream>
-#include <unordered_set>
+#include <fstream>
+#include <vector>
+#include <ctime>
+
+using namespace Go;
+using namespace std;
+
+typedef LRSplineSurface::ElementMap::const_iterator elem_it;
+typedef std::vector<double>::const_iterator vecit;
+typedef std::vector<LRBSpline2D*>::iterator lrb_it;
 
 
-namespace Go
+int main(int argc, char *argv[])
 {
-  typedef std::unordered_set<std::pair<double,double>, LRSplineSurface::double_pair_hash> elem_set_t;
+  if (argc != 3) {
+    cout << "Usage: ./generateOverloading <input g2> <output eps>" << endl;
+    return -1;
+  }
 
-  // Write to file, on PostScript-format, the parametric mesh.  
-  void writeMesh(const Go::Mesh2D& mesh, std::ostream &out, const double scale=1.0);
+  ifstream ifs(argv[1]);
+  ObjectHeader oh;
+  oh.read(ifs);
+
+  LRSplineSurface lrs;
+  lrs.read(ifs);
+ 
+  lrs.setParameterDomain(0.0,1.0,0.0,1.0);
+
+  ofstream ofs(argv[2]);
   
-  void writePostscriptMesh(const Go::Mesh2D& mesh, std::ostream &out);
-  
-  void writePostscriptMesh(Go::LRSplineSurface& lr_spline_sf, std::ostream &out, bool highlight_gamma=false);
+  writePostscriptMeshOverload(lrs,ofs);
 
-  void writePostscriptMeshWithE(Go::LRSplineSurface& lr_spline_sf, std::ostream &out, std::unordered_set<std::pair<double,double>, LRSplineSurface::double_pair_hash>& eset);
-
-  void writePostscriptMeshOverload(Go::LRSplineSurface& lr_spline_sf, std::ostream &out);
-
-
-}; // End namespace Go
-
-
-#endif // _LRSPLINEPLOTUTILS_H
+  std::vector<LRBSpline2D*> bb = LinDepUtils::unpeelableBasisFunctions ( lrs );
+  cout << "Is peelable: " << LinDepUtils::isPeelable(lrs) << endl;
+  cout << "No. unpeelable basis functions: " << bb.size() << endl;
+  return 0;
+}
 
