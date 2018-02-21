@@ -61,6 +61,7 @@ namespace Go
 
   void writePostscriptMeshOverload(Go::LRSplineSurface& lr_spline_sf, std::ostream &out);
 
+  void writePostscriptSuppLR(Go::LRSplineSurface& lr_spline_sf, std::string outfile);
 
 }; // End namespace Go
 

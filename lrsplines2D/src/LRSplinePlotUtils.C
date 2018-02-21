@@ -36,7 +36,8 @@
  * This file may be used in accordance with the terms contained in a
  * written agreement between you and SINTEF ICT. 
  */
-
+#include <string>
+#include <fstream>
 #include "GoTools/lrsplines2D/LRSplinePlotUtils.h"
 #include "GoTools/lrsplines2D/Mesh2DIterator.h"
 
@@ -207,4 +208,57 @@ namespace Go
     out << "stroke\n%%EOF\n";
   }
 
+  void writePostscriptSuppLR(Go::LRSplineSurface& lr_spline_sf, std::string outfile)
+  {
+	  double scale = 1000;
+	  
+	  int lrbcount = 0;
+	  for (LRSplineSurface::BSplineMap::const_iterator el_it = lr_spline_sf.basisFunctionsBegin(); el_it != lr_spline_sf.basisFunctionsEnd(); ++el_it) {
+		  
+		  std::string filename = outfile + std::to_string(lrbcount) + std::string(".eps");
+		  std::cout << filename << std::endl;
+		  std::ofstream out(filename);
+		  
+		  writeMesh(lr_spline_sf.mesh(), out, scale);
+		  //out << "/show-ctr {\n  dup stringwidth pop\n  -2 div 0\n  rmoveto show\n} def\n";
+		  
+		  double umin = el_it->second->umin()*scale;
+		  double umax = el_it->second->umax()*scale;
+		  double vmin = el_it->second->vmin()*scale;
+		  double vmax = el_it->second->vmax()*scale;
+
+		  out << "newpath\n";
+		  out << umin << " " << vmin << " moveto\n";
+		  out << umin << " " << vmax << " lineto\n";
+		  out << umax << " " << vmax << " lineto\n";
+		  out << umax << " " << vmin << " lineto\n";
+		  out << "closepath\n";
+		  out << "gsave\n";
+		  out << "1 0 0 setrgbcolor\n";
+		  out << "fill\n";
+		  out << "grestore\n";
+		  out << "4 setlinewidth\n";
+		  out << "0.75 setgray\n";
+		  out << "stroke\n";
+
+		  lrbcount++;
+		  writeMesh(lr_spline_sf.mesh(), out, scale);
+
+		  out << "stroke\n%%EOF\n";
+
+		  /*int s = lr_spline_sf.basisFunctionsWithSupportAt(u, v).size();
+		  int r = (lr_spline_sf.degree(XFIXED) + 1)*(lr_spline_sf.degree(YFIXED) + 1);
+		  double fontsize = scale * 0.5*std::min(el_it->second->umax() - el_it->second->umin(), el_it->second->vmax() - el_it->second->vmin());
+		  if (s > r) out << "1 0 0 setrgbcolor\n";
+		  if (s > r + 1) out << "0 1 0 setrgbcolor\n";
+		  if (s > r + 2) out << "0 0 1 setrgbcolor\n";
+		  if (s > r + 3) out << "0 0.5 0.5 setrgbcolor\n";
+		  if (s > r + 4) out << "0.5 0.5 0 setrgbcolor\n";
+		  if (s > r + 5) out << "0.5 0 0.5 setrgbcolor\n";
+		  out << "/Times-Roman " << fontsize << " selectfont\n";
+		  out << scale * u << " " << scale * v - fontsize / 4 << " moveto (" << s << ") show-ctr\n";
+		  if (s > r) out << "0 0 0 setrgbcolor\n";*/
+	  }
+	 
+  }
 } // end of namespace Go.
