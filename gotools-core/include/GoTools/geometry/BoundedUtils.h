@@ -66,7 +66,8 @@ namespace BoundedUtils {
     ///         descriptions inside the parameter domain of the 'bounded_surf'.
     std::vector<shared_ptr<CurveOnSurface> >
       intersectWithSurface(CurveOnSurface& curve,
-			   BoundedSurface& bounded_surf, double epsge);
+			   BoundedSurface& bounded_surf, double epsge,
+			   bool only_inner_curves=false);
 
     /// We have two set of CurveOnSurface s, 'curves1' and 'curves2', and two
     /// BoundedSurface s, 'bd_sf1' and 'bd_sf2'.  We extract those segments of
@@ -89,7 +90,12 @@ namespace BoundedUtils {
 			       shared_ptr<BoundedSurface>& bd_sf1,
 			       std::vector<shared_ptr<CurveOnSurface> >& curves2,
 			       shared_ptr<BoundedSurface>& bd_sf2,
-			       double epsge);
+			       double epsge, bool only_inner_curves=false);
+
+    void 
+      splitIntersectingCurves(std::vector<shared_ptr<CurveOnSurface> >& cvs1, 
+			      std::vector<shared_ptr<CurveOnSurface> >& cvs2, 
+			      double epsge, double knot_diff_tol);
 
     /// Intersect a parametric surface with a plane and fetch the
     /// intersections curves represented as curve on surface 
@@ -114,7 +120,8 @@ namespace BoundedUtils {
 			      std::vector<shared_ptr<CurveOnSurface> >& int_cv1,
 			      shared_ptr<BoundedSurface>& bounded_sf1,
 			      std::vector<shared_ptr<CurveOnSurface> >& int_cv2,
-			      shared_ptr<BoundedSurface>& bounded_sf2);
+			      shared_ptr<BoundedSurface>& bounded_sf2,
+			      bool only_inner_curves=false);
 
     /// Split a parametric surface by intersecting it with a plane and split along
     /// intersection curves
@@ -145,7 +152,7 @@ namespace BoundedUtils {
 		      shared_ptr<ParamCurve>& pcurve, double epsge,
 		      shared_ptr<BoundedSurface>& bounded_sf);
 
-      /// We intersect a parametric surface with a plane, and return the surface(s)
+    /// We intersect a parametric surface with a plane, and return the surface(s)
     /// consisting only of the part(s) of the surface that were located on the 
     /// positive side of the intersection.  If there was no intersection, an empty
     /// stl-vector is returned.  The plane is defined by its normal and a point 
@@ -220,7 +227,11 @@ namespace BoundedUtils {
 		     std::vector< shared_ptr< CurveOnSurface > >&
 		     part_bnd_cvs, double eps, int last_split=-1);
 
-    /// Help function for getBoundaryLoops
+    /// Help function for getBoundaryLoops (few sample)
+    int checkCurveCoinc(shared_ptr<ParamCurve> cv1, 
+			shared_ptr<ParamCurve> cv2, double tol);
+      
+    /// Help function for getBoundaryLoops (few sample)
     int checkCurveCoincidence(shared_ptr<CurveOnSurface> cv1, 
 			      shared_ptr<CurveOnSurface> cv2, 
 			      double tol, bool same_orient);
@@ -352,19 +363,19 @@ namespace BoundedUtils {
     /// \param plane
     /// \param space_crvs Curves lying in the plane,.
     /// \return Spline surface description of a bounded plane.
-    shared_ptr<Go::SplineSurface>
-    makeTrimmedPlane(shared_ptr<Go::Plane>& plane,
-		     std::vector<shared_ptr<Go::ParamCurve> >&
+    shared_ptr<SplineSurface>
+    makeTrimmedPlane(shared_ptr<Plane>& plane,
+		     std::vector<shared_ptr<ParamCurve> >&
 		     space_crvs);
 
     /// Change the position of a plane to adapt it to curves supposed to lie
     /// in this plane. Geometry fix related to external models
-    void translatePlaneToCurves(shared_ptr<Go::Plane>& plane,
-				std::vector<shared_ptr<Go::ParamCurve> >&
+    void translatePlaneToCurves(shared_ptr<Plane>& plane,
+				std::vector<shared_ptr<ParamCurve> >&
 				space_crvs);
 
     /// Fix the boundary loops of a surface in case of inconsistencies.
-    void fixInvalidBoundedSurface(shared_ptr<Go::BoundedSurface>& bd_sf,
+    void fixInvalidBoundedSurface(shared_ptr<BoundedSurface>& bd_sf,
 				  double max_tol_mult = 1.0);
 
     /// Check if the distance between two curves in the loop is less than
@@ -372,16 +383,33 @@ namespace BoundedUtils {
     bool loopIsDegenerate(std::vector<shared_ptr<CurveOnSurface> >& loop,
 			  double epsgeo);
 
-    bool createMissingParCvs(Go::BoundedSurface& bd_sf);
+    bool createMissingParCvs(BoundedSurface& bd_sf);
 
-    bool createMissingParCvs(std::vector<Go::CurveLoop>& bd_loops);
+    bool createMissingParCvs(std::vector<CurveLoop>& bd_loops);
+
+    bool createMissingParCvs(CurveLoop& bd_loop, bool loop_is_ccw);
 
     // The bd_loop should consist of CurveOnSurface's.
-    std::vector<std::pair<shared_ptr<Go::Point>, shared_ptr<Go::Point> > >
-    getEndParamPoints(const Go::CurveLoop& bd_loop, bool ccw_loop);
+    std::vector<std::pair<shared_ptr<Point>, shared_ptr<Point> > >
+    getEndParamPoints(const CurveLoop& bd_loop, bool ccw_loop);
+
+    // The space curve is projected onto the surface, returning the parameter pair in the surface.
+    // To handle boundary loops at a surface seam of a closed surface the direction of the loop may
+    // be passed as input.
+    shared_ptr<Point> projectSpacePoint(const ParamSurface& sf,
+                                        const ParamCurve& space_cv,
+                                        double tpar, double epsgeo,
+                                        double* seed = NULL,
+                                        bool ccw_loop = false,
+                                        bool cw_loop = false,
+                                        bool check_bd = false);
+
+    // The returned point is a (2D) tangent in the parameter domain.
+    Point projectSpaceCurveTangent(const ParamSurface& sf, const ParamCurve& space_cv,
+                                   const Point& par_pt, double tpar);
 
 
-} // namespace Go
 } // namespace BoundedUtils
+} // namespace Go
 
 #endif // _BOUNDEDUTILS_H

@@ -44,7 +44,7 @@
 #include "GoTools/geometry/BoundedUtils.h"
 #include <fstream>
 #include <utility>
-#include "GoTools/geometry/SISL_code.h"
+#include "sisl.h"
 #include "GoTools/geometry/SISLconversion.h"
 #include "GoTools/geometry/GoIntersections.h"
 #include "GoTools/geometry/SplineUtils.h"
@@ -60,12 +60,14 @@
 #include "GoTools/geometry/SurfaceTools.h"
 #include "GoTools/geometry/ClosestPoint.h"
 #include "GoTools/geometry/SurfaceOfLinearExtrusion.h"
+#include "GoTools/creators/CoonsPatchGen.h"
 
 
 using namespace Go;
 using std::vector;
 using std::pair;
 using std::swap;
+using CoonsPatchGen::blendcoef;
 
 namespace {
 // Given input of curves which may start in end pt of curr_cv (within space_eps), return
@@ -99,6 +101,12 @@ double getSeed(Point space_pt, CurveOnSurface& cv_on_sf);
 // Based on parameter domain and lengths of sf's edges, return corresponding par_eps.
 double getParEps(double space_eps, const ParamSurface *sf);
 
+    // Given a point at the seam, we use a marching approach to decide which side to choose.
+    // If the curve follows the seam at all values this test is inconclusive.
+    void marchOutSeamPoint(const ParamSurface& surface, const ParamCurve& space_cv,
+                           double tpar, bool to_the_right, bool at_u_seam, bool at_v_seam,
+			   double epsgeo, Point& par_pt, bool& success);
+
 }; // end anonymous namespace 
 
 namespace Go {
@@ -106,11 +114,13 @@ namespace Go {
 //===========================================================================
 vector<shared_ptr<CurveOnSurface> >
 BoundedUtils::intersectWithSurface(CurveOnSurface& curve,
-				     BoundedSurface& bounded_surf,
-				     double epsge)
+				   BoundedSurface& bounded_surf,
+				   double epsge, bool only_inner_curves)
 //===========================================================================
 {
   double int_tol = 0.1*epsge; //1e-06;
+  double tdel = curve.endparam() - curve.startparam();
+  double delfac = 0.01;
 
     // We extract boundary loop, and check for intersections.
     // We do not handle trimming of trimmed surfaces with holes.
@@ -201,6 +211,7 @@ BoundedUtils::intersectWithSurface(CurveOnSurface& curve,
     // We extract parts of curve inside trimmed domain.
     // First mark segments
     vector<int> int_seg_type(all_int_params.size()-1, -1);
+    // 0 = short curve, 1 = outside, 2 = inside, 3 = on the boundary
     vector<shared_ptr<CurveOnSurface> > inside_segments;
     shared_ptr<const ParamSurface> under_sf = bounded_surf.underlyingSurface();
     double knot_diff_tol = 0.01*getParEps(epsge, under_sf.get()); // We may not trust pcv to repr space_cv.
@@ -224,27 +235,57 @@ BoundedUtils::intersectWithSurface(CurveOnSurface& curve,
 	  to_par = curve.endparam();
 	double med_par = 0.5*(from_par + to_par);
 	Point med_pt = first_curve->ParamCurve::point(med_par);
-	bool is_in_domain = false;
-	try {
-	  is_in_domain = domain.isInDomain(Vector2D(med_pt[0], med_pt[1]), 
-					   knot_diff_tol);
-	}
-	catch (...)
+	int is_in_domain = -1;
+	if (to_par-from_par < delfac*tdel)
 	  {
-	    if (len > 10.0*epsge)
-	      THROW("Could not trim intersection curve with surface boundary");
-	    else
-	      is_in_domain = false;
+	    // Extra testing
+	    Point med3 = curve.ParamCurve::point(med_par);
+	    Point med_sf = curve.underlyingSurface()->point(med_pt[0],med_pt[1]);
+	    double med_dist = med3.dist(med_sf);
+	    if (med_dist > epsge)
+	      {
+		// Perform test in geometry space
+		double u1, u2, v1, v2, d1, d2;
+		Point clo1, clo2;
+		bounded_surf.closestBoundaryPoint(med3, u1, v1, clo1, 
+						  d1, epsge);
+		if (d1 < epsge)
+		  is_in_domain = 2;
+		else
+		  {
+		    bounded_surf.closestPoint(med3, u2, v2, clo2, 
+					      d2, epsge);
+		    if (d2 < epsge)
+		      is_in_domain = 1;
+		    else
+		      is_in_domain = 0;
+		  }
+	      }
 	  }
-	if (is_in_domain)
+	if (is_in_domain < 0)
 	  {
-	    // inside_segments.push_back(shared_ptr<CurveOnSurface>
-	    // 			    (dynamic_cast<CurveOnSurface*>
-	    // 			     (curve.subCurve(from_par, to_par))));
-	    int_seg_type[j] = 2;  // Inside segment
+	    try {
+	      is_in_domain = domain.isInDomain2(Vector2D(med_pt[0], med_pt[1]), 
+						knot_diff_tol);
+	    }
+	    catch (...)
+	      {
+		if (len > 10.0*epsge)
+		  THROW("Could not trim intersection curve with surface boundary");
+		else
+		  is_in_domain = 0;
+	      }
 	  }
-	else
-	  int_seg_type[j] = 1;    // Outside segment
+	int_seg_type[j] = is_in_domain + 1;
+	// if (is_in_domain == 1)
+	//   {
+	//     // inside_segments.push_back(shared_ptr<CurveOnSurface>
+	//     // 			    (dynamic_cast<CurveOnSurface*>
+	//     // 			     (curve.subCurve(from_par, to_par))));
+	//     int_seg_type[j] = 2;  // Inside segment
+	//   }
+	// else
+	//   int_seg_type[j] = 1;    // Outside segment
     }
 
     // Simplify segmentation by joining segments of the same type (inside/outside)
@@ -270,19 +311,19 @@ BoundedUtils::intersectWithSurface(CurveOnSurface& curve,
 		if (to_par - from_par > knot_diff_tol && len > epsge) 
 		  {
 		    Point med_pt = first_curve->ParamCurve::point(0.5*(from_par+to_par));
-		    bool is_in_domain = false;
+		    int is_in_domain = 0;
 		    try {
-		      is_in_domain = domain.isInDomain(Vector2D(med_pt[0], med_pt[1]), 
-						       knot_diff_tol);
+		      is_in_domain = domain.isInDomain2(Vector2D(med_pt[0], med_pt[1]), 
+							knot_diff_tol);
 		    }
 		    catch (...)
 		      {
 			if (len > 10.0*epsge)
 			  THROW("Could not trim intersection curve with surface boundary");
 			else
-			  is_in_domain = false;
+			  is_in_domain = 0;
 		      }
-		    type = (is_in_domain) ? 2 : 1;
+		    type = (is_in_domain >= 1) ? 2 : 1;
 		  }
 	      }
 	    else
@@ -311,7 +352,8 @@ BoundedUtils::intersectWithSurface(CurveOnSurface& curve,
     // Extract segments
     for (j=1; j<int(all_int_params.size()); ++j)
       {
-	if (int_seg_type[j-1] == 2)
+	if (int_seg_type[j-1] == 2 || 
+	    (only_inner_curves == false && int_seg_type[j-1] == 3))
 	  {
 	    inside_segments.push_back(shared_ptr<CurveOnSurface>
 				      (dynamic_cast<CurveOnSurface*>
@@ -510,7 +552,8 @@ BoundedUtils::getSurfaceIntersections(const shared_ptr<ParamSurface>& surf1,
 				      vector<shared_ptr<CurveOnSurface> >& int_cv1,
 				      shared_ptr<BoundedSurface>& bounded_sf1,
 				      vector<shared_ptr<CurveOnSurface> >& int_cv2,
-				      shared_ptr<BoundedSurface>& bounded_sf2)
+				      shared_ptr<BoundedSurface>& bounded_sf2,
+				      bool only_inner_curves)
 //===========================================================================
 {
     vector<shared_ptr<CurveOnSurface> > int_segments1;
@@ -569,12 +612,60 @@ BoundedUtils::getSurfaceIntersections(const shared_ptr<ParamSurface>& surf1,
     shared_ptr<ParamSurface> under_sf1 = bounded_sf1->underlyingSurface();
     shared_ptr<ParamSurface> under_sf2 = bounded_sf2->underlyingSurface();
 
+    // Avoid major extension of intersection domain
+    double domainfac = 1.5;
+    double redfac = 0.05;
+    RectDomain dom1 = bounded_sf1->containingDomain();
+    RectDomain dom2 = under_sf1->containingDomain();
+    double ll1 = dom1.diagLength();
+    double ll2 = dom2.diagLength();
+    if (ll2 > domainfac*ll1)
+      {
+	double u1 = std::max(dom1.umin()-2.0*epsge, dom2.umin());
+	double u2 = std::min(dom1.umax()+2.0*epsge, dom2.umax());
+	double v1 = std::max(dom1.vmin()-2.0*epsge, dom2.vmin());
+	double v2 = std::min(dom1.vmax()+2.0*epsge, dom2.vmax());
+	vector<shared_ptr<ParamSurface> > sub =
+	  under_sf1->subSurfaces(u1, v1, u2, v2);
+	if (sub.size() == 1)
+	  under_sf1 = sub[0];
+      }
+    RectDomain dom3 = bounded_sf2->containingDomain();
+    RectDomain dom4 = under_sf2->containingDomain();
+    double ll3 = dom3.diagLength();
+    double ll4 = dom4.diagLength();
+    if (ll4 > domainfac*ll3)
+      {
+	double u1 = std::max(dom3.umin()-2.0*epsge, dom4.umin());
+	double u2 = std::min(dom3.umax()+2.0*epsge, dom4.umax());
+	double v1 = std::max(dom3.vmin()-2.0*epsge, dom4.vmin());
+	double v2 = std::min(dom3.vmax()+2.0*epsge, dom4.vmax());
+	vector<shared_ptr<ParamSurface> > sub =
+	  under_sf2->subSurfaces(u1, v1, u2, v2);
+	if (sub.size() == 1)
+	  under_sf2 = sub[0];
+      }
+
+#ifdef DEBUG1
+    std::ofstream debug0("int_crv_surf0.g2");
+    under_sf1->writeStandardHeader(debug0);
+    under_sf1->write(debug0);
+    under_sf2->writeStandardHeader(debug0);
+    under_sf2->write(debug0);
+#endif
     try {
       getIntersectionCurve(under_sf1, under_sf2, int_segments1, int_segments2, 
 			   epsge);
     } catch (...) {
       THROW("Failed intersecting spline surface with plane.");
     }
+
+    // Ensure correct surface pointer
+    for (size_t kj=0; kj<int_segments1.size(); ++kj)
+      {
+	int_segments1[kj]->setUnderlyingSurface(bounded_sf1->underlyingSurface());
+	int_segments2[kj]->setUnderlyingSurface(bounded_sf2->underlyingSurface());
+      }
 
 #ifdef DEBUG1
     std::ofstream debug("int_crv_surf.g2");
@@ -594,7 +685,7 @@ BoundedUtils::getSurfaceIntersections(const shared_ptr<ParamSurface>& surf1,
       {
 	try {
 	  intersectWithSurfaces(int_segments1, bounded_sf1, int_segments2, 
-				bounded_sf2, /*0.1**/epsge);
+				bounded_sf2, /*0.1**/epsge, only_inner_curves);
 	} catch (...) {
 	  //THROW("Failed intersecting the two spline surfaces.");
 	}
@@ -1290,19 +1381,33 @@ BoundedUtils::getBoundaryLoops(const BoundedSurface& sf,
 //       0.01*getParEps(min_loop_tol, under_sf.get()); // We may not trust pcv to repr space_cv.
     double knot_diff_tol =
       getParEps(min_loop_tol, under_sf.get()); // We may not trust pcv to repr space_cv.
-    knot_diff_tol = std::max(knot_diff_tol, DEFAULT_PARAMETER_EPSILON);
     for (ki = 0; ki < int(boundary_loops.size()); ++ki) {
       min_loop_tol = std::min(min_loop_tol, 1.5*boundary_loops[ki].getSpaceEpsilon());
       min_loop_tol = std::max(min_loop_tol, 
 			      1.1*boundary_loops[ki].getMaxCurveDist());
 	for (kj = 0; kj < boundary_loops[ki].size(); ++kj)
 	  {
-	    shared_ptr<CurveOnSurface> tmp_crv = 
-	      dynamic_pointer_cast<CurveOnSurface, ParamCurve>(boundary_loops[ki][kj]);
-	    tmp_crv->ensureParCrvExistence(min_loop_tol);
-	    old_loop_cvs.push_back(tmp_crv);
+	    // shared_ptr<CurveOnSurface> tmp_crv = 
+	    //   dynamic_pointer_cast<CurveOnSurface, ParamCurve>(boundary_loops[ki][kj]);
+	    // TESTING
+	    shared_ptr<ParamCurve> tmp_crv(boundary_loops[ki][kj]->clone());
+	    shared_ptr<CurveOnSurface> tmp_crv2 = 
+	      dynamic_pointer_cast<CurveOnSurface, ParamCurve>(tmp_crv);
+	    double cv_len = tmp_crv2->estimatedCurveLength();
+	    double t1 = tmp_crv2->startparam();
+	    double t2 = tmp_crv2->endparam();
+	    double tdel = t2 - t1;
+	    if (cv_len > tdel && cv_len > min_loop_tol) //&& t2 - t1 <= knot_diff_tol)
+	      {
+		tmp_crv2->setParameterInterval(t1, t1+cv_len);
+		tdel = cv_len;
+	      }
+	    tmp_crv2->ensureParCrvExistence(min_loop_tol);
+	    old_loop_cvs.push_back(tmp_crv2);
+	    knot_diff_tol = std::min(knot_diff_tol, 0.2*tdel);
 	  }
     }
+    knot_diff_tol = std::max(knot_diff_tol, DEFAULT_PARAMETER_EPSILON);
 
 #ifdef DEBUG1
     std::ofstream out0_1("old_loop_cvs1.g2");
@@ -1324,6 +1429,37 @@ BoundedUtils::getBoundaryLoops(const BoundedSurface& sf,
     Point par_eps = SurfaceTools::getParEpsilon(sf, min_loop_tol);
     epspar = std::max(min_loop_tol, 0.5*(par_eps[0]+par_eps[1]));
     epspar *= 10.0;
+
+    // Check part_bd_cvs agains old_loop_cvs
+    for (ki=0; ki<(int)old_loop_cvs.size(); ++ki)
+      for (kj=0; kj<(int)part_bd_cvs.size(); ++kj)
+	{
+	  int coincidence = checkCurveCoinc(old_loop_cvs[ki], part_bd_cvs[kj], 
+					    min_loop_tol);
+	  if (coincidence == 1 || coincidence == 3)
+	    {
+	      // Coincidence or the part boundary curve is embedded in the
+	      // loop curve. Remove part boundary curve
+	      part_bd_cvs.erase(part_bd_cvs.begin() + kj);
+	      if (last_split > 0 && kj < last_split)
+		--last_split;
+	      kj--;
+	    }
+	}
+
+    if (part_bd_cvs.size() == 0)
+      {
+	// No need for rearrangement. Return existing boundray loop
+	for (size_t kf=0; kf<boundary_loops.size(); ++kf)
+	  {
+	    vector<shared_ptr<CurveOnSurface> > bd_loop;
+	    int bd_size = boundary_loops[kf].size();
+	    for (int kk=0; kk<bd_size; ++kk)
+	      bd_loop.push_back(dynamic_pointer_cast<CurveOnSurface,ParamCurve>(boundary_loops[kf][kk]));
+	    new_loops.push_back(bd_loop);
+	  }
+	return new_loops;
+      }
 
     // We run part_bd_cvs, splitting if they start/end in inner part of a cv in old_loop_cvs.
     if (last_split < 0)
@@ -1439,7 +1575,7 @@ BoundedUtils::getBoundaryLoops(const BoundedSurface& sf,
 	    if (space_end_dist < min_loop_tol)
 	      loose_end2 = false;
 
-	    if ((space_start_dist < min_loop_tol) &&
+	    if (space_start_dist < min_loop_tol  &&
 		((start_t - knot_diff_tol > old_loop_cvs[kj]->startparam() &&
 		  start_t + knot_diff_tol < old_loop_cvs[kj]->endparam()) ||
 		 (geom_start.dist(space_start_pt) > min_loop_tol &&
@@ -1503,9 +1639,9 @@ BoundedUtils::getBoundaryLoops(const BoundedSurface& sf,
 		// old_loop_cvs.insert(old_loop_cvs.begin() + kj, sub_cv);
 		// ++kj;
 	    }
-	    if ((space_end_dist < min_loop_tol) &&
+	    if (space_end_dist < min_loop_tol &&
 		((end_t - knot_diff_tol > old_loop_cvs[kj]->startparam() &&
-		  end_t + knot_diff_tol < old_loop_cvs[kj]->endparam()) ||
+		 end_t + knot_diff_tol < old_loop_cvs[kj]->endparam())||
 		 (geom_start.dist(space_end_pt) > min_loop_tol &&
 		  geom_end.dist(space_end_pt) > min_loop_tol)))
 	      {
@@ -1620,7 +1756,7 @@ BoundedUtils::getBoundaryLoops(const BoundedSurface& sf,
 			old_loop_cvs.insert(old_loop_cvs.begin() + ix, sub_cv);
 		      }
 		  }
-		min_loop_tol = mindist + a_tol;
+		min_loop_tol = std::max(min_loop_tol,mindist+a_tol);
 	      }
 	  }
     }
@@ -1639,20 +1775,20 @@ BoundedUtils::getBoundaryLoops(const BoundedSurface& sf,
     // 	    }
     // 	}
 
-    // Check part_bd_cvs agains old_loop_cvs
+    // // Check part_bd_cvs agains old_loop_cvs
     
-    for (ki=0; ki<(int)old_loop_cvs.size(); ++ki)
-      for (kj=0; kj<(int)part_bd_cvs.size(); ++kj)
-	{
-	  int coincidence = checkCurveCoincidence(old_loop_cvs[ki], part_bd_cvs[kj], 
-						  min_loop_tol, false);
-	  if (coincidence)
-	    {
-	      // Coincidence. Remove last curve
-	      part_bd_cvs.erase(part_bd_cvs.begin() + kj);
-	      kj--;
-	    }
-	}
+    // for (ki=0; ki<(int)old_loop_cvs.size(); ++ki)
+    //   for (kj=0; kj<(int)part_bd_cvs.size(); ++kj)
+    // 	{
+    // 	  int coincidence = checkCurveCoincidence(old_loop_cvs[ki], part_bd_cvs[kj], 
+    // 						  min_loop_tol, false);
+    // 	  if (coincidence)
+    // 	    {
+    // 	      // Coincidence. Remove last curve
+    // 	      part_bd_cvs.erase(part_bd_cvs.begin() + kj);
+    // 	      kj--;
+    // 	    }
+    // 	}
 	    
 #ifdef DEBUG1
     std::ofstream out1("loop_cvs1.g2");
@@ -1766,14 +1902,28 @@ BoundedUtils::getBoundaryLoops(const BoundedSurface& sf,
 
 	if (space_end_dist >= min_loop_tol && 
 	    space_end_dist < 50.0*min_loop_tol && 
-	    par_end_dist < epspar && part_ind >= 0)
+	    par_end_dist < epspar /*&& part_ind >= 0*/)
 	  {
-	    if (space_end_dist < min_loop_tol + part_bd_gap)
+	    // Make an extra check to avoid bypassing short connecting curves
+	    double cv_len = (tmp_ind < 0) ? HUGE :
+	      tmp_vec[tmp_ind]->estimatedCurveLength();
+
+	    double cand_end_dist = HUGE;
+	    if (cv_len < 50.0*min_loop_tol)
+	      {
+		// Check endpoint of candidate curve
+		Point cand_end = 
+		  tmp_vec[tmp_ind]->ParamCurve::point(tmp_vec[tmp_ind]->endparam());
+		cand_end_dist = total_space_start_pt.dist(cand_end);
+	      }
+	    if ((space_end_dist < min_loop_tol + part_bd_gap ||
+		space_end_dist < 2.0*min_loop_tol) && 
+		cand_end_dist > space_end_dist)
 	      {
 		// Probably a closed loop despite a big gap
 		min_loop_tol2 = space_end_dist + a_tol;
 	      }
-	    else
+	    else if (cand_end_dist > space_end_dist)
 	      {
 		// Make a test run for the next curve
 		vector<shared_ptr<CurveOnSurface> > tmp_vec2;
@@ -1808,7 +1958,10 @@ BoundedUtils::getBoundaryLoops(const BoundedSurface& sf,
 	      {
 		// A new segment to the left of the first segment is found.
 		// Be careful not to join two loops in tangential cases
-		if (first_is_part_bd && prev_old_ind >= 0)
+		// Check also curve lengths
+		double len = tmp_vec[tmp_ind]->estimatedCurveLength();
+		if (first_is_part_bd && prev_old_ind >= 0 ||
+		    len < min_loop_tol2)
 		  part_ind = old_ind = -1;
 	      }
 	  }
@@ -1909,6 +2062,92 @@ BoundedUtils::getBoundaryLoops(const BoundedSurface& sf,
     return new_loops; // We should be done
 }
 
+
+//===========================================================================
+int BoundedUtils::checkCurveCoinc(shared_ptr<ParamCurve> cv1, 
+				  shared_ptr<ParamCurve> cv2, 
+				  double tol)
+//===========================================================================
+{
+  int coinc = 0;  // Initially no coincidence
+
+  // Check if two curves are identical, or one is embedded in the other.
+  // Compare endpoints
+  Point pt1 = cv1->point(cv1->startparam());
+  Point pt2 = cv1->point(cv1->endparam());
+  Point pt3 = cv2->point(cv2->startparam());
+  Point pt4 = cv2->point(cv2->endparam());
+  double d1 = pt1.dist(pt3);
+  double d2 = pt1.dist(pt4);
+  double d3 = pt2.dist(pt3);
+  double d4 = pt2.dist(pt4);
+
+  double param1[2], param2[2];  // Endpoint of coincidence interval
+  if ((d1 < tol && d4 < tol) || (d2 < tol && d3 < tol))
+    {
+      // Potential full coincidence
+      param1[0] = cv1->startparam();
+      param1[1] = cv1->endparam();
+      param2[0] = cv2->startparam();
+      param2[1] = cv2->endparam();
+      coinc = 1;
+    }
+  else
+    {
+      // Check if cv1 is embedded in cv2
+      Point clo1, clo2;
+      double par1, par2, dist1, dist2;
+      cv2->closestPoint(pt1, cv2->startparam(), cv2->endparam(),
+			par1, clo1, dist1);
+      cv2->closestPoint(pt2, cv2->startparam(), cv2->endparam(),
+			par2, clo2, dist2);
+      if (dist1 < tol && dist2 < tol)
+	{
+	  param1[0] = cv1->startparam();
+	  param1[1] = cv1->endparam();
+	  param2[0] = std::min(par1, par2);
+	  param2[1] = std::max(par1, par2);
+	  coinc = 2;
+	}
+      else
+	{
+	  // Check of cv2 is embedded in cv1
+	  cv1->closestPoint(pt3, cv1->startparam(), cv1->endparam(),
+			    par1, clo1, dist1);
+	  cv1->closestPoint(pt4, cv1->startparam(), cv1->endparam(),
+			    par2, clo2, dist2);
+	  if (dist1 < tol && dist2 < tol)
+	    {
+	      param1[0] = std::min(par1, par2);
+	      param1[1] = std::max(par1, par2);
+	      param2[0] = cv2->startparam();
+	      param2[1] = cv2->endparam();
+	      coinc = 3;
+	    }
+	}
+    }
+ 	  
+  if (coinc == 0)
+    return coinc;  // No coincidence
+
+
+  // Check the inner of the curve
+  int nmb_sample = 3;
+  double tdel = (param1[1] - param1[0])/(double)(nmb_sample+1);
+  double tpar;
+  int ki;
+  for (ki=0, tpar=param1[0]+tdel; ki<nmb_sample; ++ki, tpar+=tdel)
+    {
+      Point clo;
+      double par, dist;
+      Point pos = cv1->point(tpar);
+      cv2->closestPoint(pos, param2[0], param2[1], par, clo, dist);
+      if (dist >= tol)
+	return 0;
+    }
+
+  return coinc;
+}
 
 //===========================================================================
 int BoundedUtils::checkCurveCoincidence(shared_ptr<CurveOnSurface> cv1, 
@@ -2796,7 +3035,7 @@ void BoundedUtils::intersectWithSurfaces(vector<shared_ptr<CurveOnSurface> >& cv
 					   shared_ptr<BoundedSurface>& bd_sf1,
 					   vector<shared_ptr<CurveOnSurface> >& cvs2,
 					   shared_ptr<BoundedSurface>& bd_sf2,
-					   double epsge)
+					 double epsge, bool only_inner_curves)
 //===========================================================================
 {
     ASSERT(cvs1.size() == cvs2.size());
@@ -2813,6 +3052,7 @@ void BoundedUtils::intersectWithSurfaces(vector<shared_ptr<CurveOnSurface> >& cv
     // We run through the parallell vectors extracting parts lying on sf.
     double fac = 1.5;
     double angtol = 0.1;
+    double pihalf = 0.5*M_PI;
     vector<shared_ptr<CurveOnSurface> > new_cvs1, new_cvs2; //(cvs2.size());
     for (ki = 0; ki < int(cvs1.size()); ++ki) {
       // First make sure that the parameteriazation of geometry curves and
@@ -2828,8 +3068,10 @@ void BoundedUtils::intersectWithSurfaces(vector<shared_ptr<CurveOnSurface> >& cv
 	      cvs1[ki]->ensureSpaceCrvExistence(epsge);
 	      DirectionCone cone1 = tmp_cv->directionCone();
 	      DirectionCone cone2 = cvs1[ki]->spaceCurve()->directionCone();
+	      double ang = cone1.centre().angle(cone2.centre());
 	      if (cone2.greaterThanPi() ||
-		  (cone2.angle() > fac*cone1.angle() && cone2.angle() > angtol))
+		  (cone2.angle() > fac*cone1.angle() && cone2.angle() > angtol) ||
+		  cone2.angle() + 0.5*ang >= pihalf)
 		{
 #ifdef DEBUG
 		  std::cout << "Check curve" << std::endl;
@@ -2841,21 +3083,30 @@ void BoundedUtils::intersectWithSurfaces(vector<shared_ptr<CurveOnSurface> >& cv
 	    {
 	      shared_ptr<ParamCurve> tmp_cv = cvs1[ki]->parameterCurve();
 	      cvs1[ki]->unsetParameterCurve();
-	      cvs1[ki]->ensureParCrvExistence(epsge);
-	      DirectionCone cone1 = tmp_cv->directionCone();
-	      DirectionCone cone2 = cvs1[ki]->parameterCurve()->directionCone();
-	      if (cone2.greaterThanPi() ||
-		  (cone2.angle() > fac*cone1.angle() && cone2.angle() > angtol))
+	      bool found = cvs1[ki]->ensureParCrvExistence(epsge);
+	      if (!found)
+		cvs1[ki]->setParameterCurve(tmp_cv);
+	      else
 		{
+		  DirectionCone cone1 = tmp_cv->directionCone();
+		  DirectionCone cone2 = cvs1[ki]->parameterCurve()->directionCone();
+		  double ang = cone1.centre().angle(cone2.centre());
+		  if (cone2.greaterThanPi() ||
+		      (cone2.angle() > fac*cone1.angle() && cone2.angle() > angtol) ||
+		      cone2.angle() + 0.5*ang >= pihalf)
+		    {
 #ifdef DEBUG
-		  std::cout << "Check curve" << std::endl;
+		      std::cout << "Check curve" << std::endl;
 #endif
-		  cvs1[ki]->setParameterCurve(tmp_cv);
+		      cvs1[ki]->setParameterCurve(tmp_cv);
+		    }
 		}
 	    }
 	}
+
 	vector<shared_ptr<CurveOnSurface> > new_cvs = 
-	  intersectWithSurface(*cvs1[ki], *bd_sf1, /*0.1**/epsge);
+	  intersectWithSurface(*cvs1[ki], *bd_sf1, /*0.1**/epsge,
+			       only_inner_curves);
 	new_cvs1.insert(new_cvs1.end(), new_cvs.begin(), new_cvs.end());
 	int other_ind = opp_dir ? (int)cvs1.size() - 1 - ki : ki;
 
@@ -2867,10 +3118,14 @@ void BoundedUtils::intersectWithSurfaces(vector<shared_ptr<CurveOnSurface> >& cv
 	    {
 	      shared_ptr<ParamCurve> tmp_cv = cvs2[other_ind]->spaceCurve();
 	      cvs2[other_ind]->unsetSpaceCurve();
-	      cvs2[other_ind]->ensureSpaceCrvExistence(epsge);
-	      DirectionCone cone1 = tmp_cv->directionCone();
-	      DirectionCone cone2 = cvs2[other_ind]->spaceCurve()->directionCone();
-	      if (cone2.greaterThanPi() ||
+	      bool found = cvs2[other_ind]->ensureSpaceCrvExistence(epsge);
+	      DirectionCone cone1, cone2;
+	      if (found)
+		{
+		  cone1 = tmp_cv->directionCone();
+		  cone2 = cvs2[other_ind]->spaceCurve()->directionCone();
+		}
+	      if (!found || cone2.greaterThanPi() ||
 		  (cone2.angle() > fac*cone1.angle() && cone2.angle() > angtol))
 		{
 #ifdef DEBUG
@@ -2883,10 +3138,14 @@ void BoundedUtils::intersectWithSurfaces(vector<shared_ptr<CurveOnSurface> >& cv
 	    {
 	      shared_ptr<ParamCurve> tmp_cv = cvs2[other_ind]->parameterCurve();
 	      cvs2[other_ind]->unsetParameterCurve();
-	      cvs2[other_ind]->ensureParCrvExistence(epsge);
-	      DirectionCone cone1 = tmp_cv->directionCone();
-	      DirectionCone cone2 = cvs1[ki]->parameterCurve()->directionCone();
-	      if (cone2.greaterThanPi() ||
+	      bool found = cvs2[other_ind]->ensureParCrvExistence(epsge);
+	      DirectionCone cone1, cone2;
+	      if (found)
+		{
+		  cone1 = tmp_cv->directionCone();
+		  cone2 = cvs1[ki]->parameterCurve()->directionCone();
+		}
+	      if (!found || cone2.greaterThanPi() ||
 		  (cone2.angle() > fac*cone1.angle() && cone2.angle() > angtol))
 		{
 #ifdef DEBUG
@@ -2896,7 +3155,8 @@ void BoundedUtils::intersectWithSurfaces(vector<shared_ptr<CurveOnSurface> >& cv
 		}
 	    }
 	}
-	new_cvs = intersectWithSurface(*cvs2[other_ind], *bd_sf2, /*0.1**/epsge);
+	new_cvs = intersectWithSurface(*cvs2[other_ind], *bd_sf2, 
+				       /*0.1**/epsge, only_inner_curves);
 	new_cvs2.insert(new_cvs2.end(), new_cvs.begin(), new_cvs.end());
     }
 
@@ -2909,72 +3169,9 @@ void BoundedUtils::intersectWithSurfaces(vector<shared_ptr<CurveOnSurface> >& cv
     }
 
     // We then make sure that the resulting cvs span the same spatial pts.
+    // First split curves which end in the interior of another curve
     double knot_diff_tol = 1e-05;
-    for (ki = 0; ki < int(new_cvs1.size()); ++ki) {
-	Point start1 = new_cvs1[ki]->ParamCurve::point(new_cvs1[ki]->startparam());
-	Point end1 = new_cvs1[ki]->ParamCurve::point(new_cvs1[ki]->endparam());
-	if (start1.dist(end1) < epsge)
-	  continue;
-	// We split cvs which end in the interior of another cv.
-	for (kj = 0; kj < int(new_cvs2.size()); ++kj) {
-	    Point start2 = new_cvs2[kj]->ParamCurve::point(new_cvs2[kj]->startparam());
-	    Point end2 = new_cvs2[kj]->ParamCurve::point(new_cvs2[kj]->endparam());
-	    if (start2.dist(end2) < epsge)
-	      continue;
-	    // We then perform closest pt calculations for all end pts.
-	    double clo_t, clo_dist;
-	    Point clo_pt;
-	    double len1 = new_cvs1[ki]->estimatedCurveLength();
-	    new_cvs1[ki]->ParamCurve::closestPoint(end2, clo_t, clo_pt, clo_dist);
-	    double len1_1 = new_cvs1[ki]->estimatedCurveLength(new_cvs1[ki]->startparam(), 
-							       clo_t);
-	    double len1_2 = new_cvs1[ki]->estimatedCurveLength(clo_t,
-							       new_cvs1[ki]->endparam());
-	    if ((clo_dist < epsge && len1 > epsge && len1_1 > epsge && len1_2 > epsge) && 
-		((clo_t - knot_diff_tol > new_cvs1[ki]->startparam()) &&
-		 (clo_t + knot_diff_tol < new_cvs1[ki]->endparam()))) 
-	      {
-		shared_ptr<CurveOnSurface> new_cv(new_cvs1[ki]->subCurve(clo_t, new_cvs1[ki]->endparam()));
-		new_cvs1.insert(new_cvs1.begin() + ki + 1, new_cv);
-		new_cvs1[ki] = shared_ptr<CurveOnSurface>
-		    (new_cvs1[ki]->subCurve(new_cvs1[ki]->startparam(), clo_t));
-	    }
-	    new_cvs1[ki]->ParamCurve::closestPoint(start2, clo_t, clo_pt, clo_dist);
-	    if ((clo_dist < epsge && len1 > epsge) && 
-		((clo_t - knot_diff_tol > new_cvs1[ki]->startparam()) &&
-		 (clo_t + knot_diff_tol < new_cvs1[ki]->endparam()))) {
-		shared_ptr<CurveOnSurface> new_cv(new_cvs1[ki]->subCurve(clo_t, new_cvs1[ki]->endparam()));
-		new_cvs1.insert(new_cvs1.begin() + ki + 1, new_cv);
-		new_cvs1[ki] = shared_ptr<CurveOnSurface>
-		    (new_cvs1[ki]->subCurve(new_cvs1[ki]->startparam(), clo_t));
-	    }
-	    double len2 = new_cvs2[kj]->estimatedCurveLength();
-	    if (len2 < epsge)
-	      continue;
-	    new_cvs2[kj]->ParamCurve::closestPoint(end1, clo_t, clo_pt, clo_dist);
-	    double len2_1 = new_cvs2[kj]->estimatedCurveLength(new_cvs2[kj]->startparam(), 
-							       clo_t);
-	    double len2_2 = new_cvs2[kj]->estimatedCurveLength(clo_t,
-							       new_cvs2[kj]->endparam());
-	    if (len2_1 < epsge || len2_2 < epsge)
-	      continue;
-	    if ((clo_dist < epsge) && ((clo_t - knot_diff_tol > new_cvs2[kj]->startparam()) &&
-				       (clo_t + knot_diff_tol < new_cvs2[kj]->endparam()))) {
-		shared_ptr<CurveOnSurface> new_cv(new_cvs2[kj]->subCurve(clo_t, new_cvs2[kj]->endparam()));
-		new_cvs2.insert(new_cvs2.begin() + kj + 1, new_cv);
-		new_cvs2[kj] = shared_ptr<CurveOnSurface>
-		    (new_cvs2[kj]->subCurve(new_cvs2[kj]->startparam(), clo_t));
-	    }
-	    new_cvs2[kj]->ParamCurve::closestPoint(start1, clo_t, clo_pt, clo_dist);
-	    if ((clo_dist < epsge) && ((clo_t - knot_diff_tol > new_cvs2[kj]->startparam()) &&
-				       (clo_t + knot_diff_tol < new_cvs2[kj]->endparam()))) {
-		shared_ptr<CurveOnSurface> new_cv(new_cvs2[kj]->subCurve(clo_t, new_cvs2[kj]->endparam()));
-		new_cvs2.insert(new_cvs2.begin() + kj + 1, new_cv);
-		new_cvs2[kj] = shared_ptr<CurveOnSurface>
-		    (new_cvs2[kj]->subCurve(new_cvs2[kj]->startparam(), clo_t));
-	    }
-	}
-    }
+    splitIntersectingCurves(new_cvs1, new_cvs2, epsge, knot_diff_tol);
 
     // We then remove parts with a space cv lying on one sf only.
     // We extract matches to input vectors.
@@ -3003,6 +3200,106 @@ void BoundedUtils::intersectWithSurfaces(vector<shared_ptr<CurveOnSurface> >& cv
     }
 }
 
+  void 
+  BoundedUtils::splitIntersectingCurves(vector<shared_ptr<CurveOnSurface> >& cvs1, 
+					vector<shared_ptr<CurveOnSurface> >& cvs2, 
+					double epsge, double knot_diff_tol)
+  {
+    int ki, kj;
+    for (ki = 0; ki < int(cvs1.size()); ++ki) {
+      double t1 = cvs1[ki]->startparam();
+      double t2 = cvs1[ki]->endparam();
+	Point start1 = cvs1[ki]->ParamCurve::point(t1);
+	Point end1 = cvs1[ki]->ParamCurve::point(t2);
+	if (start1.dist(end1) < epsge)
+	  {
+	    // Check mid point
+	    Point mid1 = cvs1[ki]->ParamCurve::point(0.5*(t1+t2));
+	    if (mid1.dist(start1) < epsge && mid1.dist(end1) < epsge)
+	      continue;
+	  }
+	// We split cvs which end in the interior of another cv.
+	for (kj = 0; kj < int(cvs2.size()); ++kj) {
+	  if (cvs1[ki].get() == cvs2[kj].get())
+	    continue;  // The same curve
+
+	  double t3 = cvs2[kj]->startparam();
+	  double t4 = cvs2[kj]->endparam();
+	  Point start2 = cvs2[kj]->ParamCurve::point(t3);
+	  Point end2 = cvs2[kj]->ParamCurve::point(t4);
+	    if (start2.dist(end2) < epsge)
+	      {
+		// Check mid point
+		Point mid2 = cvs2[kj]->ParamCurve::point(0.5*(t3+t4));
+		if (mid2.dist(start2) < epsge && mid2.dist(end2) < epsge)
+		  continue;
+	      }
+
+	    // We then perform closest pt calculations for all end pts.
+	    double clo_t, clo_dist;
+	    Point clo_pt;
+	    double len1 = cvs1[ki]->estimatedCurveLength();
+	    cvs1[ki]->ParamCurve::closestPoint(end2, clo_t, clo_pt, clo_dist);
+	    double len1_1 = 
+	      cvs1[ki]->estimatedCurveLength(cvs1[ki]->startparam(), clo_t);
+	    double len1_2 = 
+	      cvs1[ki]->estimatedCurveLength(clo_t, cvs1[ki]->endparam());
+	    if ((clo_dist < epsge && len1 > epsge && len1_1 > epsge && len1_2 > epsge) && 
+		((clo_t - knot_diff_tol > cvs1[ki]->startparam()) &&
+		 (clo_t + knot_diff_tol < cvs1[ki]->endparam()))) 
+	      {
+		shared_ptr<CurveOnSurface> new_cv(cvs1[ki]->subCurve(clo_t, cvs1[ki]->endparam()));
+		cvs1.insert(cvs1.begin() + ki + 1, new_cv);
+		cvs1[ki] = shared_ptr<CurveOnSurface>
+		    (cvs1[ki]->subCurve(cvs1[ki]->startparam(), clo_t));
+	    }
+	    cvs1[ki]->ParamCurve::closestPoint(start2, clo_t, clo_pt, clo_dist);
+	    double len1_3 = 
+	      cvs1[ki]->estimatedCurveLength(cvs1[ki]->startparam(), clo_t);
+	    double len1_4 = 
+	      cvs1[ki]->estimatedCurveLength(clo_t, cvs1[ki]->endparam());	    
+	    if ((clo_dist < epsge && len1 > epsge &&  
+		 len1_3 > epsge && len1_4 > epsge) && 
+		((clo_t - knot_diff_tol > cvs1[ki]->startparam()) &&
+		 (clo_t + knot_diff_tol < cvs1[ki]->endparam()))) {
+		shared_ptr<CurveOnSurface> new_cv(cvs1[ki]->subCurve(clo_t, cvs1[ki]->endparam()));
+		cvs1.insert(cvs1.begin() + ki + 1, new_cv);
+		cvs1[ki] = shared_ptr<CurveOnSurface>
+		    (cvs1[ki]->subCurve(cvs1[ki]->startparam(), clo_t));
+	    }
+	    double len2 = cvs2[kj]->estimatedCurveLength();
+	    if (len2 < epsge)
+	      continue;
+	    cvs2[kj]->ParamCurve::closestPoint(end1, clo_t, clo_pt, clo_dist);
+	    double len2_1 = 
+	      cvs2[kj]->estimatedCurveLength(cvs2[kj]->startparam(), clo_t);
+	    double len2_2 = 
+	      cvs2[kj]->estimatedCurveLength(clo_t, cvs2[kj]->endparam());
+	    if ((clo_dist < epsge && len2_1 > epsge && len2_2 > epsge) && 
+		((clo_t - knot_diff_tol > cvs2[kj]->startparam()) &&
+				       (clo_t + knot_diff_tol < cvs2[kj]->endparam()))) {
+		shared_ptr<CurveOnSurface> new_cv(cvs2[kj]->subCurve(clo_t, cvs2[kj]->endparam()));
+		cvs2.insert(cvs2.begin() + kj + 1, new_cv);
+		cvs2[kj] = shared_ptr<CurveOnSurface>
+		    (cvs2[kj]->subCurve(cvs2[kj]->startparam(), clo_t));
+	    }
+	    cvs2[kj]->ParamCurve::closestPoint(start1, clo_t, clo_pt, clo_dist);
+	    double len2_3 = 
+	      cvs2[kj]->estimatedCurveLength(cvs2[kj]->startparam(), clo_t);
+	    double len2_4 = 
+	      cvs2[kj]->estimatedCurveLength(clo_t, cvs2[kj]->endparam());
+
+	    if ((clo_dist < epsge && len2_3 > epsge && len2_4 > epsge) && 
+		((clo_t - knot_diff_tol > cvs2[kj]->startparam()) &&
+		 (clo_t + knot_diff_tol < cvs2[kj]->endparam()))) {
+		shared_ptr<CurveOnSurface> new_cv(cvs2[kj]->subCurve(clo_t, cvs2[kj]->endparam()));
+		cvs2.insert(cvs2.begin() + kj + 1, new_cv);
+		cvs2[kj] = shared_ptr<CurveOnSurface>
+		    (cvs2[kj]->subCurve(cvs2[kj]->startparam(), clo_t));
+	    }
+	}
+    }
+  }
 
 vector<vector<shared_ptr<BoundedSurface> > >
 BoundedUtils::trimSurfsWithSurfs(const vector<shared_ptr<ParamSurface> >& sfs1,
@@ -3203,7 +3500,7 @@ BoundedUtils::trimSurfWithSurfs(shared_ptr<ParamSurface>& sf,
       {
 	std::sort(par[ki].begin(), par[ki].end());
 
-	// Extend with endpoints if necessary
+	// // Extend with endpoints if necessary
 	// if (fabs(par[ki][0]-all_int_segments[ki]->startparam()) < epsge)
 	//   par[ki][0] = all_int_segments[ki]->startparam();
 	// else
@@ -4079,7 +4376,6 @@ bool BoundedUtils::createMissingParCvs(Go::BoundedSurface& bd_sf)
 	;//MESSAGE("All OK, epsgeo = " << epsgeo << ", max_gap = " << max_gap);
     }
 
-    vector<CurveLoop> bd_loops = bd_sf.absolutelyAllBoundaryLoops();
 #ifndef NDEBUG
     {
 	std::ofstream debug("tmp/debug_pre.g2");
@@ -4112,7 +4408,22 @@ bool BoundedUtils::createMissingParCvs(Go::BoundedSurface& bd_sf)
             surf_of_lin_extr->setParameterBounds(umin, vmin, umax, vmax);
         }
     }
+
+    for (int ki = 0; ki < bd_sf.numberOfLoops(); ++ki)
+    {
+        shared_ptr<CurveLoop> loop = bd_sf.loop(ki);
+	const bool loop_is_ccw = (ki == 0);
+        bool loop_par_cvs_ok = createMissingParCvs(*loop, loop_is_ccw);
+        if (!loop_par_cvs_ok)
+        {
+            all_par_cvs_ok = false;
+        }
+    }
+
+#if 0
+    vector<CurveLoop> bd_loops = bd_sf.absolutelyAllBoundaryLoops();
     all_par_cvs_ok = createMissingParCvs(bd_loops);
+#endif
 
 #ifndef NDEBUG
     {
@@ -4136,20 +4447,134 @@ bool BoundedUtils::createMissingParCvs(vector<CurveLoop>& bd_loops)
 {
     bool all_par_cvs_ok = true;
 
-    for (size_t kj=0; kj<bd_loops.size(); kj++)
+    int loop_id = -1;
+    for ( auto& bd_loop : bd_loops )
     {
+        ++loop_id;
+	const bool loop_is_ccw = (loop_id == 0);        
+        bool loop_cvs_ok = createMissingParCvs(bd_loop, loop_is_ccw);
+        if (!loop_cvs_ok)
+        {
+            all_par_cvs_ok = false;
+        }
+    }
+
+    return all_par_cvs_ok;
+}
+
+//==========================================================================
+bool BoundedUtils::createMissingParCvs(CurveLoop& bd_loop, bool loop_is_ccw)
+//==========================================================================
+{
+    bool all_par_cvs_ok = true;
+
+    // for ( auto& bd_loop : bd_loops )
+    // {
 	// Make ParamCurve pointers
 	// For cases with end pt at a seam and tangent following the seam, we may need to project the previous/next curve first.
 //	vector<int> second_attempt;
-	int num_segments = bd_loops[kj].size();
+	//CurveLoop bd_loop = bd_loops[kj];
+	vector<pair<shared_ptr<Point>, shared_ptr<Point> > > loop_end_par_pts = getEndParamPoints(bd_loop, loop_is_ccw);
+
+        // If an end point is in a singularity and we are missing a deg space curve we must add one.
+        // We are assuming that all projected end points are within epsgeo. If the corresponding par pts
+        // differ by more than epspar the point is assumed to be a singularity in need of a degenerete
+        // segment in space and a corresponding linear segment in the paremeter domain.
+        shared_ptr<CurveOnSurface> first_cv = dynamic_pointer_cast<CurveOnSurface>(bd_loop[0]);
+        ASSERT(first_cv.get() != NULL);
+        shared_ptr<ParamSurface> sf = first_cv->underlyingSurface();
+        const double epsgeo = bd_loop.getSpaceEpsilon();
+        Point par_eps = SurfaceTools::getParEpsilon(*sf, epsgeo);
+        const double epspar = std::min(par_eps[0], par_eps[1]);
+        const double epstang = 1.0e-06;
+        std::vector<shared_ptr<ParamCurve> > loop_cvs = bd_loop.getCurves();
+        for (size_t ki = 0; ki < loop_end_par_pts.size(); ++ki)
+        {
+            size_t next_ind = (ki + 1)%(loop_end_par_pts.size());
+            if ((loop_end_par_pts[ki].second.get() != nullptr) && (loop_end_par_pts[next_ind].first.get() != nullptr))
+            {
+                shared_ptr<Point> end_par_pt = loop_end_par_pts[ki].second;
+                vector<Point> end_sf_pt = sf->point((*end_par_pt)[0], (*end_par_pt)[1], 1);
+                shared_ptr<Point> start_par_pt = loop_end_par_pts[next_ind].first;
+                vector<Point> start_sf_pt = sf->point((*start_par_pt)[0], (*start_par_pt)[1], 1);
+                double pardist = end_par_pt->dist(*start_par_pt);
+                double space_dist = end_sf_pt[0].dist(start_sf_pt[0]);
+                if (pardist > epspar)
+                {
+                    if (space_dist < epsgeo)
+                    {   // This warning means one of the following:
+
+                        // If the surface point is a singularity we add a degenerate segment.
+                        const double par_dist_0 = fabs((*end_par_pt)[0] - (*start_par_pt)[0]);
+                        const double par_dist_1 = fabs((*end_par_pt)[1] - (*start_par_pt)[1]);
+                        if ((par_dist_0 < epspar) || (par_dist_1 < epspar))
+                        {
+                            // If the tangents for the index wich the deviating parameter value is less
+                            // than a small tolerance we have found a surface singularity and we need to
+                            // insert a degenerate segment.
+                            const int diff_ind = (par_dist_0 < epspar) ? 1 : 0;
+                            const double end_length = end_sf_pt[1 + diff_ind].length();
+                            const double start_length = start_sf_pt[1 + diff_ind].length();
+                            if ((end_length < epstang) && (start_length < epstang))
+                            {
+                                // 1) We miss a degenerate edge (i.e. the surface point is a singularity, the par
+                                //    points share parameter value in one of the directions).
+                                // std::cout << "WARNING: Suspecting: Add a degenerate edge! pardist = " <<
+                                //     pardist << " (epspar = " << epspar << "). end_length: " << end_length <<
+                                //     ", start_length: " << start_length << ". UPDATE BD_SF WITH LOOP!" << std::endl;
+                                // The Line object relies on a non-zero directional vector, hence we use a SplineCurve.
+#if 1
+                                shared_ptr<Line> deg_line(new Line(end_sf_pt[0], start_sf_pt[0], 0.0, 1.0));
+#else
+                                shared_ptr<SplineCurve> deg_line(new SplineCurve(end_sf_pt[0], 0.0, start_sf_pt[0], 1.0));
+#endif
+                                const double par_pref = false;
+                                shared_ptr<CurveOnSurface> deg_cv_on_sf(new CurveOnSurface(sf, deg_line, par_pref));
+                                loop_end_par_pts.insert(loop_end_par_pts.begin() + ki + 1,
+                                                        std::make_pair(loop_end_par_pts[ki].second,
+                                                                       loop_end_par_pts[next_ind].first));
+                                loop_cvs.insert(loop_cvs.begin() + ki + 1, deg_cv_on_sf);
+                                continue;
+                            }
+                            else
+                            {
+                                // 2) We failed projection onto the seam of a closed surface (like sphere, cylinder, torus).
+                                std::cout << "WARNING: Suspecting: Failed projecting onto seam of closed surface." <<
+                                    std::endl;
+                            }
+                        }
+                        else
+                        {
+                            // 3) The projection routine is not accurate enough.
+                            std::cout << "WARNING: Suspecting: Projection is inaccurate." << " par_dist_0: " <<
+                                par_dist_0 << ", par_dist_1: " << par_dist_1 << ", epspar: " << epspar <<
+                                ", space_dist: " << space_dist << ", epsgeo: " << epsgeo << std::endl;
+                        }
+                    }
+                    else
+                    {
+                        // 4) The space curve is too far from the surface.
+                        std::cout << "WARNING: Suspecting: The loop is not connected! space_dist = " <<
+                            space_dist << ", epsgeo = " << epsgeo << ")" << std::endl;
+                    }
+                }
+            }
+        }
+
+#if 1
+        if (bd_loop.size() != loop_cvs.size())
+        {
+            bd_loop.setCurves(loop_cvs, false);
+        }
+#endif
+
+	int num_segments = bd_loop.size();
 	vector<int> loop_cv_ind(num_segments);
 	vector<bool> failed_once(num_segments, false);
-	CurveLoop bd_loop = bd_loops[kj];
-	double epsgeo = bd_loop.getSpaceEpsilon();
-	const bool loop_is_ccw = (kj == 0);
-	vector<pair<shared_ptr<Point>, shared_ptr<Point> > > loop_end_par_pts = getEndParamPoints(bd_loop, loop_is_ccw);
-	for (int kr = 0; kr < bd_loops[kj].size(); ++kr)
-	  loop_cv_ind[kr] = kr;
+	for (int kr = 0; kr < bd_loop.size(); ++kr)
+        {
+            loop_cv_ind[kr] = kr;
+        }
 
 	// We start by creating parameter end points.
 	// If that fails for a curve there is no need to even try to project ...
@@ -4170,9 +4595,9 @@ bool BoundedUtils::createMissingParCvs(vector<CurveLoop>& bd_loops)
 	    shared_ptr<Point> start_pt = loop_end_par_pts[curr_cv_ind].first;
 	    shared_ptr<Point> end_pt = loop_end_par_pts[curr_cv_ind].second;
 
-	    int num_loop_cvs = bd_loops[kj].size();
+	    int num_loop_cvs = bd_loop.size();
             const int prev_cv_ind = (curr_cv_ind-1+num_loop_cvs)%num_loop_cvs;
-	    shared_ptr<ParamCurve> prev_cv = bd_loops[kj][prev_cv_ind];
+	    shared_ptr<ParamCurve> prev_cv = bd_loop[prev_cv_ind];
 	    shared_ptr<CurveOnSurface> prev_cos = dynamic_pointer_cast<CurveOnSurface>(prev_cv);
 	    if ((start_pt.get() == NULL) && (prev_cos->parameterCurve()))
 	    {
@@ -4180,7 +4605,7 @@ bool BoundedUtils::createMissingParCvs(vector<CurveLoop>& bd_loops)
                     (new Point(prev_cos->parameterCurve()->point(prev_cos->parameterCurve()->endparam())));
 	    }
             const int next_cv_ind = (curr_cv_ind+1)%num_loop_cvs;
-	    shared_ptr<ParamCurve> next_cv = bd_loops[kj][next_cv_ind];
+	    shared_ptr<ParamCurve> next_cv = bd_loop[next_cv_ind];
 	    shared_ptr<CurveOnSurface> next_cos = dynamic_pointer_cast<CurveOnSurface>(next_cv);
 	    if ((end_pt.get() == NULL) && (next_cos->parameterCurve()))
 	    {
@@ -4191,10 +4616,6 @@ bool BoundedUtils::createMissingParCvs(vector<CurveLoop>& bd_loops)
 	    if ((start_pt.get() == NULL) || (end_pt.get() == NULL))
 	    {
 		if (!failed_once[curr_cv_ind])
-		// {
-		//     all_par_cvs_ok = false;
-                // }
-                // else
                 {
                     failed_once[curr_cv_ind] = true;
                     loop_cv_ind.erase(loop_cv_ind.begin() + ki);
@@ -4267,7 +4688,7 @@ bool BoundedUtils::createMissingParCvs(vector<CurveLoop>& bd_loops)
 	    }
 #endif
 	}
-    }
+//    }
 
     return all_par_cvs_ok;
 }
@@ -4310,34 +4731,16 @@ BoundedUtils::getEndParamPoints(const Go::CurveLoop& bd_loop, bool ccw_loop)
 	{
 	    double* seed = NULL;
 	    bool check_bd = true;
-//	    int follows_seem_ind_start = -1;
-	    bd_par_pts[ki].first = (prev_pcv.get() != NULL) ?
-                shared_ptr<Point>(new Point(prev_pcv->point(prev_pcv->endparam()))) :
+	    bd_par_pts[ki].first =
                 cv_on_sf->projectSpacePoint(cv_on_sf->startparam(), epsgeo,
                                             seed,
-//							       follows_seem_ind_start,
                                             loop_is_ccw, loop_is_cw,
                                             check_bd);
-	    // if (follows_seem_ind_start != -1)
-	    // {
-	    // 	MESSAGE("We should mark the curve as at the seem!");
-	    // }
-//	    int follows_seem_ind_end = -1;
-	    bd_par_pts[ki].second = (next_pcv.get() != NULL) ?
-                shared_ptr<Point>(new Point(next_pcv->point(next_pcv->startparam()))) :
+	    bd_par_pts[ki].second =
                 cv_on_sf->projectSpacePoint(cv_on_sf->endparam(), epsgeo,
                                             seed,
-//								follows_seem_ind_end,
                                             loop_is_ccw, loop_is_cw,
                                             check_bd);
-	    // if (follows_seem_ind_end != -1)
-	    // {
-	    // 	if (follows_seem_ind_start != follows_seem_ind_end)
-	    // 	{
-	    // 	    MESSAGE("This should not happen, mismatch ...");
-	    // 	}
-	    // 	MESSAGE("We should mark the curve as at the seem!");
-	    // }
 
 	    double dist = -1.0;
 	    if (bd_par_pts[ki].first.get() != NULL)
@@ -4435,6 +4838,534 @@ BoundedUtils::getEndParamPoints(const Go::CurveLoop& bd_loop, bool ccw_loop)
 
     return bd_par_pts;
 }
+
+
+shared_ptr<Point> BoundedUtils::projectSpacePoint(const ParamSurface& sf,
+                                                  const ParamCurve& space_cv,
+                                                  double tpar, double epsgeo,
+                                                  double* seed,
+                                                  bool ccw_loop,
+                                                  bool cw_loop ,
+                                                  bool check_bd)
+{
+
+    // If we give info on loop orientation, we must choose a direction.
+    if (ccw_loop && cw_loop)
+    {
+        THROW("The caller can not choose both ccw and cw direction for the loop.");
+    }
+
+    const double ang_tol = 1e-02;
+
+    bool closed_dir_u, closed_dir_v;
+    Go::SurfaceTools::checkSurfaceClosed(sf, closed_dir_u, closed_dir_v, epsgeo);
+    bool is_closed = (closed_dir_u || closed_dir_v);
+
+    vector<Point> cv_pt = space_cv.point(tpar, 1);
+    double clo_u, clo_v, clo_dist;
+    Point clo_pt;
+    const double eps = 1e-10;
+    sf.closestPoint(cv_pt[0], clo_u, clo_v, clo_pt, clo_dist, eps, NULL, seed);
+    vector<Point> sf_pt = sf.point(clo_u, clo_v, 1);
+    const double deg_tol = 1.0e-06;
+    const double length_cv_der = cv_pt[1].length();
+    const bool deg_cv_pt = (length_cv_der < deg_tol);
+    const double length_uder = sf_pt[1].length();
+    const double length_vder = sf_pt[2].length();
+    const bool deg_uder = (length_uder < deg_tol);
+    const bool deg_vder = (length_vder < deg_tol);
+    if (deg_uder || deg_vder)
+    {
+        if (deg_cv_pt) // If the curve is degenerate in the point the projection must be handled by other
+                       // methods (like using parameters of neighbouring curves if this is a bd point).
+        {
+            return shared_ptr<Point>(NULL);
+        }
+
+        if (seed)
+        { // @@sbr201711 We must decide on how to handle this situation. Trust seed to give satisfactory param value?
+            std::cout << "DEBUG: We were given a seed!" << std::endl;
+        }
+
+        // We need to use a marching approach to find the correct parameter. Or use the space
+        // tangent. For the cone case this should suffice. The same with the sphere.
+        double ang_rad = (deg_uder) ? cv_pt[1].angle(sf_pt[2]) : cv_pt[1].angle(sf_pt[1]);
+        std::cout << "DEBUG: The surface is degenerate in this point! ang_rad = " << ang_rad << std::endl;
+        double tstep = 1.0e-03;
+        double tpar2 = (tpar + tstep < space_cv.endparam()) ? tpar + tstep : tpar - tstep;
+        vector<Point> cv_pt2 = space_cv.point(tpar2, 1);
+        double clo_u2, clo_v2, clo_dist2;
+        Point clo_pt2;
+        sf.closestPoint(cv_pt2[0], clo_u2, clo_v2, clo_pt2, clo_dist2, eps, NULL, seed);
+        std::cout << "DEBUG: clo_u: " << clo_u << ", clo_u2: " << clo_u2 << ", clo_v: " << clo_v <<
+            ", clo_v2: " << clo_v2 << std::endl;
+
+        // @@sbr201801 Another option is to use the angle with the end tangents at both ends of the deg
+        // edge. Or even better we may actually search for the parameter with the corresponding
+        // direction! If the end tangents are the same we must use a marching approach to find the
+        // correct parameter along the edge.
+        const RectDomain& rect_dom = sf.containingDomain();
+        if (deg_uder)
+        {
+            Point par_pt_min(rect_dom.umin(), clo_v);
+            Point par_pt_max(rect_dom.umax(), clo_v);
+            // We then compute the directional derivatives.
+            vector<Point> pt_min = sf.point(par_pt_min[0], par_pt_min[1], 1);
+            double ang_min = cv_pt[1].angle(pt_min[2]);
+            bool min_parallel = ((fabs(ang_min) < ang_tol) || (fabs(fabs(ang_min) - M_PI) < ang_tol));
+            vector<Point> pt_max = sf.point(par_pt_max[0], par_pt_max[1], 1);
+            double ang_max = cv_pt[1].angle(pt_max[2]);
+            bool max_parallel = ((fabs(ang_max) < ang_tol) || (fabs(fabs(ang_max) - M_PI) < ang_tol));
+            if (min_parallel != max_parallel)
+            {
+                clo_u = (min_parallel) ? par_pt_min[0] : par_pt_max[0];
+                return shared_ptr<Point>(new Point(clo_u, clo_v));
+            }
+            else if (min_parallel && max_parallel)
+            {
+                // We use cw/ccw info if it exists.
+                if (ccw_loop || cw_loop)
+                {
+                    bool same_dir = (fabs(ang_max) < 0.5*M_PI);
+                    clo_u = ((same_dir && ccw_loop) || ((!same_dir) && cw_loop)) ? par_pt_max[0] : par_pt_min[0];
+                    return shared_ptr<Point>(new Point(clo_u, clo_v));
+                }
+            }
+            else if ((!min_parallel) && (!max_parallel))
+            {
+                std::cout << "WARNING: Tangent to/from degenerate point is not along the min/max value!" << std::endl;
+                // We should add a search in the tanget space of the surface. We are not guaranteed to follow an iso
+                // line, making the search more complex.
+            }
+        }
+        else
+        {
+            Point par_pt_min(clo_u, rect_dom.vmin());
+            Point par_pt_max(clo_u, rect_dom.vmax());
+            // We then compute the directional derivatives.
+            vector<Point> pt_min = sf.point(par_pt_min[0], par_pt_min[1], 1);
+            double ang_min = cv_pt[1].angle(pt_min[1]);
+            bool min_parallel = ((fabs(ang_min) < ang_tol) || (fabs(fabs(ang_min) - M_PI) < ang_tol));
+            vector<Point> pt_max = sf.point(par_pt_max[0], par_pt_max[1], 1);
+            double ang_max = cv_pt[1].angle(pt_max[1]);
+            bool max_parallel = ((fabs(ang_max) < ang_tol) || (fabs(fabs(ang_max) - M_PI) < ang_tol));
+            if (min_parallel != max_parallel)
+            {
+                clo_v = (min_parallel) ? par_pt_min[1] : par_pt_max[1];
+                return shared_ptr<Point>(new Point(clo_u, clo_v));
+            }
+            else if (min_parallel && max_parallel)
+            {
+                // We use cw/ccw info if it exists.
+                if (ccw_loop || cw_loop)
+                {
+                    bool same_dir = (fabs(ang_max) < 0.5*M_PI);
+                    clo_v = ((same_dir && ccw_loop) || ((!same_dir) && cw_loop)) ? par_pt_min[1] : par_pt_max[1];
+                    return shared_ptr<Point>(new Point(clo_u, clo_v));
+                }
+            }
+            else if ((!min_parallel) && (!max_parallel))
+            {
+                std::cout << "WARNING: Tangent to/from degenerate point is not along the min/max value!" << std::endl;
+                // We should add a search in the tanget space of the surface. We are not guaranteed to follow an iso
+                // line, making the search more complex.
+            }
+        }
+        double upar = (deg_uder) ? clo_u2 : clo_u;
+        double vpar = (deg_vder) ? clo_v2 : clo_v;
+        Point sf_pt_deg = sf.point(upar, vpar);
+        double sf_pt_deg_dist = sf_pt_deg.dist(cv_pt[0]); // We compare with the projection, not with the
+        // curve (which may be relatively far away).
+        if (sf_pt_deg_dist < epsgeo) // We only accept the point if it is within epsgeo.
+        {
+            std::cout << "DEBUG: Degenerate point, enabling special handling! clo_dist: " << clo_dist <<
+                ", sf_pt_deg_dist: " << sf_pt_deg_dist << std::endl;
+            if (deg_uder)
+            {
+                clo_u = clo_u2;
+            }
+            else
+            {
+                clo_v = clo_v2;
+            }
+            return shared_ptr<Point>(new Point(clo_u, clo_v));
+        }
+    }
+
+    bool sf_is_bounded = sf.isBounded();
+    if (sf_is_bounded && check_bd)
+    {
+	try {
+	    double clo_u_bd, clo_v_bd, clo_dist_bd;
+	    Point clo_pt_bd;
+	    sf.closestBoundaryPoint(cv_pt[0], clo_u_bd, clo_v_bd, clo_pt_bd, clo_dist_bd, eps, NULL, seed);
+	    if (clo_dist_bd < clo_dist)
+	    {
+		clo_dist = clo_dist_bd;
+		clo_u = clo_u_bd;
+		clo_v = clo_v_bd;
+		clo_pt = clo_pt_bd;
+	    }
+	}
+	catch (...)
+	{
+	    MESSAGE("Suspecting the surface is not bounded.");
+	}
+    }
+
+    const Point sf_epspar = SurfaceTools::getParEpsilon(sf, epsgeo);
+    const double epspar = std::min(sf_epspar[0], sf_epspar[1]);
+    const double knot_diff_tol = epspar;//1e-08;
+    const RectDomain rect_dom = sf.containingDomain();
+    const double umin = rect_dom.umin();
+    const double umax = rect_dom.umax();
+    const double vmin = rect_dom.vmin();
+    const double vmax = rect_dom.vmax();
+    const bool at_u_start = (fabs(clo_u - umin) < knot_diff_tol);
+    const bool at_u_end = (fabs(clo_u - umax) < knot_diff_tol);
+    const bool at_v_start = (fabs(clo_v - vmin) < knot_diff_tol);
+    const bool at_v_end = (fabs(clo_v - vmax) < knot_diff_tol);
+
+    // By at_u_bd we mean that the seam corresponds to a u-parameter.
+    const bool at_u_bd = (at_u_start || at_u_end);
+    const bool at_v_bd = (at_v_start || at_v_end);
+
+    if ((seed != NULL) || ((!(closed_dir_u && at_u_bd) && !(closed_dir_v && at_v_bd))))// && (!deg_uder && !deg_vder)))
+    {
+	// Simple case.
+	shared_ptr<Point> par_pt(new Point(clo_u, clo_v));
+	return par_pt;
+    }
+    else // We are at the seam. We use the direction of the projected tangent to choose the side.
+    {
+	// We consider an angle of more than ang_tol to be non-tangential.
+	const bool handle_u_seam = (at_u_bd && closed_dir_u);
+	const bool handle_v_seam = (at_v_bd && closed_dir_v);
+
+	// If we are at the end of the curve, our test differs slightly.
+	const bool at_cv_end = (fabs(tpar - space_cv.endparam()) < knot_diff_tol);
+	const bool at_cv_start = (fabs(tpar - space_cv.startparam()) < knot_diff_tol);
+
+	// If we cross the seem the task is impossible. Use a seed.
+	// The calles can get a seed on both sides by picking a tpar
+	// slightly larger and smaller.
+	if (!at_cv_start && !at_cv_end)
+	{
+	    std::cout << "WARNING: Case requires a seed." << std::endl;
+	    return shared_ptr<Point>(NULL);
+	}
+
+	vector<Point> sf_pt = sf.point(clo_u, clo_v, 1);
+	// vector<Point> cv_pt = space_cv.point(tpar, 1);
+	double ang_u_space = cv_pt[1].angle(sf_pt[1]);
+	double ang_v_space = cv_pt[1].angle(sf_pt[2]);
+
+	// The range of angle2() is [0, 2*M_PI).
+	Point u_dir(1.0, 0.0);
+	Point v_dir(0.0, 1.0);
+
+	// We project the space curve tangent onto the surface.
+	Point proj_par_pt(clo_u, clo_v);
+	Point par_tangent = projectSpaceCurveTangent(sf, space_cv, proj_par_pt, tpar);
+
+	double ang_u = u_dir.angle2(par_tangent); // This is in the parameter domain.
+	// But we want [-M_PI, M_PI).
+	if (ang_u >= M_PI)
+	{
+	    ang_u -= 2*M_PI;
+	}
+	// To fix problems with uneven scaling of domain directions we check angle for space tangents.
+	if (ang_u_space < ang_tol)
+	{
+	    ang_u = 0.0;
+	}
+	double ang_v = v_dir.angle2(par_tangent);
+	if (ang_v >= M_PI)
+	{
+	    ang_v -= 2*M_PI;
+	}
+	if (ang_v_space < ang_tol)
+	{
+	    ang_v = 0.0;
+	}
+        bool u_parallel = ((fabs(ang_u) < ang_tol) || (fabs(fabs(ang_u) - M_PI) < ang_tol));
+        bool v_parallel = ((fabs(ang_v) < ang_tol) || (fabs(fabs(ang_v) - M_PI) < ang_tol));
+
+        // By using the direction of the tangent in combination with the cw_loop/ccw_loop information we
+        // should be able to handle points at a double seam.
+        if (handle_u_seam && handle_v_seam)
+	{   
+            // We must compare the tangent with the surface tangent. Based on the direction and position on the curve (begin/end)
+            // we can conclude on which side to project.
+            if ((!cw_loop) && (!ccw_loop))
+            {
+                std::cout << "WARNING: The method branch expects the input to be part of a loop!" << std::endl;
+            }
+
+            if ((!u_parallel) && (!v_parallel))
+            {
+                // It is trivial to extend the method to support this case.
+                std::cout << "WARNING: Double seam, non-tangential, case not handled!" << 
+                    " ang_u: " << ang_u << ", ang_v: " << ang_v << std::endl;
+                return shared_ptr<Point>(NULL);
+            }
+            else if (u_parallel)
+            {   // We use the u-dir to pick the u param. We use the ccw/cw info to pick the v param.
+                if (fabs(ang_u) < ang_tol)
+                {
+                    clo_u = (at_cv_start) ? umin : umax;
+                    clo_v = (ccw_loop) ? vmin : vmax;
+                }
+                else if (fabs(fabs(ang_u) - M_PI) < ang_tol)
+                {
+                    clo_u = (at_cv_start) ? umax : umin;
+                    clo_v = (ccw_loop) ? vmax : vmin;
+                }
+            }
+            else // v_parallel
+            {   // We use the u-dir to pick the v param. We use the ccw/cw info to pick the u param.
+                if (fabs(ang_v) < ang_tol)
+                {
+                    clo_v = (at_cv_start) ? vmin : vmax;
+                    clo_u = (ccw_loop) ? umax : umin;
+                }
+                else if (fabs(fabs(ang_v) - M_PI) < ang_tol)
+                {
+                    clo_v = (at_cv_start)? vmax : vmin;
+                    clo_u = (ccw_loop) ? umin : umax;
+                }
+            }
+
+            return shared_ptr<Point>(new Point(clo_u, clo_v));
+        }
+
+        // ElementarySurface* elem_sf = surface_->elementarySurface();
+        // const double sign = (elem_sf == nullptr) ? 1.0 : (elem_sf->isSwapped() ? -1.0 : 1.0);
+	else if (handle_u_seam)
+	{
+	    if (v_parallel)//(fabs(ang_v) < ang_tol) || ((fabs(ang_v) - M_PI) < ang_tol))// || ((fabs(ang_v - M_PI) < ang_tol)))
+	    {   // We are following the seam, with no seed given, not handled currently.
+		// @@sbr201506 We could use a marching approach to handle some cases.
+//		MESSAGE("Following the seam! constdir_: " << constdir_ << ", constval_: " << constval_);
+                if (cw_loop || ccw_loop)
+                {
+                    if (fabs(ang_v) < ang_tol)
+                    {
+//                    clo_v = (at_cv_start) ? vmin : vmax;
+                        clo_u = (ccw_loop) ? umax : umin;
+                    }
+                    else if (fabs(fabs(ang_v) - M_PI) < ang_tol)
+                    {
+//                    clo_v = (at_cv_start)? vmax : vmin;
+                        clo_u = (ccw_loop) ? umin : umax;
+                    }
+                }
+                else
+                {
+                    bool march_left_success = false;
+                    Point march_left_pt = Point(clo_u, clo_v);
+                    marchOutSeamPoint(sf, space_cv, tpar, false, true, false, epsgeo,
+                                      march_left_pt, march_left_success);
+                    bool march_right_success = false;
+                    Point march_right_pt = Point(clo_u, clo_v);
+                    marchOutSeamPoint(sf, space_cv, tpar, true, true, false, epsgeo,
+                                      march_right_pt, march_right_success);
+                    if (march_left_success && march_right_success)
+                    {
+                        double dist = march_left_pt.dist(march_right_pt);
+                        if (dist < knot_diff_tol)
+                        {
+                            // The result should be the same.
+                            return shared_ptr<Point>(new Point(march_left_pt));
+                        }
+                        else
+                        {
+                            MESSAGE("Marching ended in mismatch.");
+                        }
+                    }
+                    else if (march_left_success)
+                    {
+                        return shared_ptr<Point>(new Point(march_left_pt));
+                    }
+                    else if (march_right_success)
+                    {
+                        return shared_ptr<Point>(new Point(march_right_pt));
+                    }
+                    else
+                    {
+                        // This should mean that the whole curve is following the seam. We use loop orientation
+                        // to choose side.
+                        if (ccw_loop)
+                        {
+                            // If tangent is increasing we choose umax, otherwise umin.
+                            clo_u = (par_tangent[1] > 0.0) ? umax : umin;
+                            return shared_ptr<Point>(new Point(clo_u, clo_v));
+                        }
+                        else if (cw_loop)
+                        {
+                            clo_u = (par_tangent[1] > 0.0) ? umin : umax;
+                            return shared_ptr<Point>(new Point(clo_u, clo_v));
+                        }
+//		    follows_seem_dir = 2;
+                        MESSAGE("Marching failed. ccw_loop: " << ccw_loop << ", cw_loop: " << cw_loop);
+                        return shared_ptr<Point>(NULL);
+                    }
+                }
+	    }
+	    else
+	    {
+		if (at_cv_end) // The end of the space curve.
+		{
+		    if (((ang_v < 0.0) && at_u_start) ||
+			((ang_v > 0.0) && at_u_end))
+		    {
+			clo_u = (at_u_start) ? umax : umin;
+		    }
+		    return shared_ptr<Point>(new Point(clo_u, clo_v));
+		}
+		else if (at_cv_start)
+		{
+		    if (((ang_v < 0.0) && at_u_end) ||
+			((ang_v > 0.0) && at_u_start))
+		    {
+			clo_u = (at_u_start) ? umax : umin;
+		    }
+		    return shared_ptr<Point>(new Point(clo_u, clo_v));
+		}
+		else
+		{
+		    MESSAGE("This routine does not handle curves crossing the seam!");
+		    return shared_ptr<Point>(NULL);
+		}
+	    }
+	}
+	// else // at_v_bd
+	else if (handle_v_seam) // Constant v parameter for the seam.
+	{
+	    if (u_parallel)//(fabs(ang_u) < ang_tol) || ((fabs(ang_u) - M_PI) < ang_tol))// || ((fabs(ang_u - M_PI) < ang_tol)))
+	    { // We are along the seam.
+//		MESSAGE("Following the seam! constdir_: " << constdir_ << ", constval_: " << constval_);
+                if (cw_loop || ccw_loop)
+                {
+                    if (fabs(ang_u) < ang_tol)
+                    {
+//                    clo_u = (at_cv_start) ? umin : umax;
+                        clo_v = (ccw_loop) ? vmin : vmax;
+                    }
+                    else if (fabs(fabs(ang_u) - M_PI) < ang_tol)
+                    {
+//                    clo_u = (at_cv_start) ? umax : umin;
+                        clo_v = (ccw_loop) ? vmax : vmin;
+                    }
+                }
+                else
+                {
+                    bool march_left_success = false;
+                    Point march_left_pt = Point(clo_u, clo_v);
+                    marchOutSeamPoint(sf, space_cv, tpar, false, false, true, epsgeo,
+                                      march_left_pt, march_left_success);
+                    bool march_right_success = false;
+                    Point march_right_pt = Point(clo_u, clo_v);
+                    marchOutSeamPoint(sf, space_cv, tpar, true, false, true, epsgeo,
+                                      march_right_pt, march_right_success);
+                    if (march_left_success && march_right_success)
+                    {
+                        double dist = march_left_pt.dist(march_right_pt);
+                        if (dist < knot_diff_tol)
+                        {
+                            // The result should be the same.
+                            return shared_ptr<Point>(new Point(march_left_pt));
+                        }
+                        else
+                        {
+                            MESSAGE("Marching ended in mismatch.");
+                        }
+                    }
+                    else if (march_left_success)
+                    {
+                        return shared_ptr<Point>(new Point(march_left_pt));
+                    }
+                    else if (march_right_success)
+                    {
+                        return shared_ptr<Point>(new Point(march_right_pt));
+                    }
+                    else
+                    {
+//		    follows_seem_dir = 2;
+                        // This should mean that the whole curve is following the seam. We use loop orientation
+                        // to choose side.
+                        if (ccw_loop)
+                        {
+                            // If tangent is increasing we choose umax, otherwise umin.
+                            clo_v = (par_tangent[0] > 0.0) ? vmin : vmax;
+                            return shared_ptr<Point>(new Point(clo_u, clo_v));
+                        }
+                        else if (cw_loop)
+                        {
+                            clo_v = (par_tangent[0] > 0.0) ? vmax : vmin;
+                            return shared_ptr<Point>(new Point(clo_u, clo_v));
+                        }
+                        MESSAGE("Marching failed. ccw_loop: " << ccw_loop << ", cw_loop: " << cw_loop);
+                        return shared_ptr<Point>(NULL);
+                    }
+                }
+		// MESSAGE("Following the seam!");
+		// return shared_ptr<Point>(NULL);
+	    }
+	    else
+	    {
+		if (at_cv_end) // The end of the space curve.
+		{
+		    if (((ang_u > 0.0) && at_v_start) ||
+			((ang_u < 0.0) && at_v_end))
+		    {
+			clo_v = (at_v_start) ? vmax : vmin;
+		    }
+		    return shared_ptr<Point>(new Point(clo_u, clo_v));
+		}
+		else if (at_cv_start)
+		{
+		    if (((ang_u > 0.0) && at_v_end) ||
+			((ang_u < 0.0) && at_v_start))
+		    {
+			clo_v = (at_v_start) ? vmax : vmin;
+		    }
+		    return shared_ptr<Point>(new Point(clo_u, clo_v));
+		}
+		else
+		{
+		    MESSAGE("This routine does not handle curves crossing the seam!");
+		    return shared_ptr<Point>(NULL);
+		}
+	    }
+	}
+    }
+
+    return shared_ptr<Point>(new Point(clo_u, clo_v));
+}
+
+
+//===========================================================================
+Point BoundedUtils::projectSpaceCurveTangent(const ParamSurface& sf, const ParamCurve& space_cv,
+                                             const Point& par_pt, double tpar)
+//===========================================================================
+{
+    vector<Point> space_cv_pt = space_cv.point(tpar, 1);
+    const int dim = space_cv.dimension();
+    // We then project the tangent into the parameter domain.
+    vector<Point> sf_pt = sf.ParamSurface::point(par_pt[0], par_pt[1], 1);
+    // We describe the curve tangent as a linear combination of the partial derivs.
+    double coef1, coef2;
+    blendcoef(&sf_pt[1][0], &sf_pt[2][0],
+	      &space_cv_pt[1][0], dim, 1, &coef1, &coef2);
+
+    Point pt_dir(2);
+    pt_dir[0] = coef1;
+    pt_dir[1] = coef2;
+
+    return pt_dir;
+}
+
 
 } // end namespace Go
 
@@ -4668,12 +5599,16 @@ void consistentIntersectionDir(ParamCurve& inters_pcv,
 				 double epsgeo)
 //===========================================================================
 {
+  if (!sf_cv1->hasParameterCurve())
+    return; // Nothing to do
   Point par_pt = sf_cv1->parameterCurve()->point(sf_cv1->startparam());
   Point sf_normal;
   sf_cv1->underlyingSurface()->normal(sf_normal, par_pt[0], par_pt[1]);
   vector<Point> space_pt = sf_cv1->spaceCurve()->point(sf_cv1->startparam(), 1);
   Point tangent = space_pt[1];
   tangent.normalize_checked();
+  if (!sf_cv2->hasParameterCurve())
+    return; // Nothing to do
   Point other_par_pt1 = sf_cv2->parameterCurve()->point(sf_cv2->startparam());
   Point other_par_pt2 = sf_cv2->parameterCurve()->point(sf_cv2->endparam());
   vector<Point> other_space_pt1 = 
@@ -4748,13 +5683,69 @@ double getParEps(double space_eps, const ParamSurface *sf)
 }
 
 
-// }; // end anonymous namespace
+//===========================================================================
+void marchOutSeamPoint(const ParamSurface& surface, const ParamCurve& space_cv,
+                       double tpar, bool to_the_right, bool at_u_seam, bool at_v_seam,
+                       double epsgeo, Point& par_pt, bool& success)
+//===========================================================================
+{
+    const Point sf_epspar = SurfaceTools::getParEpsilon(surface, epsgeo);
+    const double epspar = std::min(sf_epspar[0], sf_epspar[1]);
+    const double knot_diff_tol = epspar;//1e-08;
+    Point space_pt = space_cv.ParamCurve::point(tpar);
+    double tmin = space_cv.startparam();
+    double tmax = space_cv.endparam();
 
-//     /// Assuming input sets of surfaces are oriented consistently within the set, we return
-//     /// the surfaces resulting from pairwise trimming.
-//     vector<vector<shared_ptr<BoundedSurface> > >
-//       trimSurfsWithSurfs(const vector<shared_ptr<Go::ParamSurface> >& sfs1,
-// 			 const vector<shared_ptr<Go::ParamSurface> >& sfs2, double epsge);
-    
+    RectDomain rect_dom = surface.containingDomain();
+
+    if (at_u_seam && at_v_seam)
+    {   // We must extend our method to keep on going until ok_left_u and ok_left_v are ok etc.
+	MESSAGE("Function is not really prepared for a point in a torus corner ...");
+    }
+
+    const double march_limit = (to_the_right) ? tmax : tmin;
+
+    if (fabs(march_limit - tpar) < knot_diff_tol)
+    {   // We are at the end going in that direction.
+	success = false;
+	return;
+    }
+
+//    Point par_pt_march = par_pt;
+    double range = fabs(tpar - march_limit);
+    int sign = (to_the_right) ? 1 : -1;
+    double tstep_frac = 1e-04; // 14 steps to get past the start param.
+    int mult = 1;
+    double step_tpar = tpar + sign*tstep_frac*mult*range;
+    Point seed_pt = par_pt;
+    while ((step_tpar > tmin) && (step_tpar < tmax))
+    {
+	double clo_u, clo_v, clo_dist;
+	Point clo_pt;
+        Point step_space_pt = space_cv.ParamCurve::point(step_tpar);
+	surface.closestPoint(step_space_pt, clo_u, clo_v, clo_pt, clo_dist, epsgeo, NULL, &seed_pt[0]);
+	if ((at_u_seam) && (fabs(par_pt[0] - clo_u) > knot_diff_tol))
+	{
+	    par_pt[0] = (clo_u < 0.5*(rect_dom.umin() + rect_dom.umax())) ? rect_dom.umin() : rect_dom.umax();
+	    success = true;
+	}
+	if ((at_v_seam) && (fabs(par_pt[1] - clo_v) > knot_diff_tol))
+	{
+	    par_pt[1] = (clo_v < 0.5*(rect_dom.vmin() + rect_dom.vmax())) ? rect_dom.vmin() : rect_dom.vmax();
+	    success = true;
+	}
+	if (success)
+	{
+	    break;
+	}
+	else
+	{
+	    seed_pt = Point(clo_u, clo_v);
+	    mult *= 2;
+	    step_tpar = tpar + sign*tstep_frac*mult*range;
+	}
+    }
+}
+
 
 }; // end anonymous namespace

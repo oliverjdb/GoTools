@@ -37,139 +37,73 @@
  * written agreement between you and SINTEF ICT. 
  */
 
-#ifndef _SURFACEONVOLUME_H
-#define _SURFACEONVOLUME_H
+#ifndef _OFFSETSURFACE_H
+#define _OFFSETSURFACE_H
+
 
 #include "GoTools/geometry/ParamSurface.h"
-#include "GoTools/trivariate/ParamVolume.h"
+
 
 namespace Go
 {
-  /// \brief A surface living on a parametric volume. It either has got 
-  /// information about the surface in geometry space and in the parameter
-  /// domain of the volume or both.
-  /// The surface may have information on whether it is a constant
-  /// parameter or boundary surface on the volume.
 
-  class SurfaceOnVolume : public ParamSurface
-  {
-  public:
-    /// Empty constructor
-    SurfaceOnVolume();
 
-    /// Constructor given associated volue, the surface in the parameter
-    /// plane of this volume and the corresponding surface in geometry space.
-    /// One surface representation may be a dummy. In that case the parameter
-    /// indicating which surface representation is the master, must be set 
-    /// accordingly
-    /// \param vol associated volume
-    /// \param parsurf surface in parameter domain of the volume
-    /// \param spacesurf surface in geometry space
-    /// \param preferparameter true if the parameter surface is the master
-    SurfaceOnVolume(shared_ptr<ParamVolume> vol,
-		    shared_ptr<ParamSurface> parsurf,
-		    shared_ptr<ParamSurface> spacesurf,
-		    bool preferparameter);
+class SplineSurface;
 
-    /// Constructor given the volume, the surface in geometry space and
-    /// constant parameter information related to the surface
-    /// \param vol associated volume
-    /// \param spacesurf surface in geometry space
-    /// \param constdir: 0 = not set, 1 = u-parameter constant, 
-    /// 2 = v-parameter constant, 3 = w-parameter constant
-    /// \param constpar value of constant parameter
-    /// \param boundary index: -1=no, 0=umin, 1=umax, 2=vmin, 
-    /// 3=vmax, 4=wmin, 5=wmax
-    /// \param swapped orientation of surface related to underlying volume
-    SurfaceOnVolume(shared_ptr<ParamVolume> vol,
-		    shared_ptr<ParamSurface> spacesurf,
-		    int constdir, double constpar, int boundary,
-		    bool swapped, int orientation=0);
+    // Functions that must be implemented (to convert from step):
+    // ToDo: outerBoundaryLoop
+    // Done: boundingBox + write + normal + point + closestBoundaryPoint
 
-    /// Constructor given volume and constant parameter information. Must only
-    /// be used if the constant parameter information is set
-    SurfaceOnVolume(shared_ptr<ParamVolume> vol,
-		    int constdir, double constpar, int boundary);
+class OffsetSurface : public ParamSurface
+{
+public:
 
-    /// Constructor to be used if all information is known
-    /// \param vol associated volume
-    /// \param parsurf surface in parameter domain of the volume
-    /// \param spacesurf surface in geometry space
-    /// \param constdir: 0 = not set, 1 = u-parameter constant, 
-    /// 2 = v-parameter constant, 3 = w-parameter constant
-    /// \param constpar value of constant parameter
-    /// \param boundary index: -1=no, 0=umin, 1=umax, 2=vmin, 3=vmax, 4=wmin, 5=wmax
-    /// \param swapped orientation of surface related to underlying volume
-    SurfaceOnVolume(shared_ptr<ParamVolume> vol,
-		    shared_ptr<ParamSurface> spacesurf,
-		    shared_ptr<ParamSurface> parsurf,
-		    bool prefer_parameter,
-		    int constdir, double constpar, int boundary,
-		    bool swapped);
+    OffsetSurface()
+      : ParamSurface()
+    {
+    }
 
-    /// Assignment constructor
-    SurfaceOnVolume(const SurfaceOnVolume& other);
+    OffsetSurface(shared_ptr<ParamSurface> param_sf,
+                  double offset_dist, double epsgeo, bool self_int = false);
 
-    /// Destructor
-    virtual ~SurfaceOnVolume();
+    /// Virtual destructor, enables safe inheritance.
+    virtual ~OffsetSurface();
 
     // inherited from Streamable
-    /// Read surface on volume information from file
-    /// Not implemented
     virtual void read (std::istream& is);
 
     // inherited from Streamable
-    /// Write surface on volume information to file for visualization purposes
-    /// If the geometry space surface exists, only that surface is written
     virtual void write (std::ostream& os) const;
 
     // inherited from GeomObject
-    /// Axis align box surrounding this object
     virtual BoundingBox boundingBox() const;
 
     // inherited from GeomObject
-    /// Dimension of geometry space
     virtual int dimension() const;
-    
-    /// Return the class type identifier of type SurfaceOnVolume
+
+    // inherited from GeomObject
     virtual ClassType instanceType() const;
 
-    /// Return the class type identifier of type SurfaceOnVolumeBoundedSurface
+    // inherited from GeomObject
     static ClassType classType()
-    { return Class_SurfaceOnVolume; }
+    { return Class_OffsetSurface; }
 
-    /// make a clone of this surface and return a pointer to it (user is 
-    /// responsible for clearing up memory afterwards).
-    /// \return pointer to cloned object
-    virtual SurfaceOnVolume* clone() const
-    {
-      return new SurfaceOnVolume(*this);
-    }
+    virtual OffsetSurface* clone() const
+    { return new OffsetSurface(*this); }
 
-    /// Return the spline surface associated to this surface, if any
-    virtual SplineSurface* asSplineSurface()
-    {
-      if (spacesurf_.get())
-	return spacesurf_->asSplineSurface();
-      else
-	return 0;
-    }
+    /// Return a copy of the spline surface represented by this surface, if any. The returned pointer is
+    /// the responsibility of the caller.
+    virtual SplineSurface* asSplineSurface();
 
     /// Return the spline surface associated to this surface, if any
-    virtual SplineSurface* getSplineSurface() 
-    {
-      if (spacesurf_.get())
-	return spacesurf_->getSplineSurface();
-      else
-	return 0;
-    }
+    virtual SplineSurface* getSplineSurface();
 
     /// Return associated elementary surface, if any
     virtual ElementarySurface* elementarySurface()
     {
-      return spacesurf_->elementarySurface();
+      return 0;
     }
-
+      
     /// Return the parameter domain of the surface.  This may be a simple
     /// rectangular domain (\ref RectDomain) or any other subclass of
     /// \ref Domain (such as GoCurveBoundedDomain, found in the
@@ -184,6 +118,11 @@ namespace Go
     ///         parameter domain.
     virtual RectDomain containingDomain() const;
 
+    /// Query if parametrization is bounded. All four parameter bounds
+    /// must be finite for this to be true.
+    /// \return \a true if bounded, \a false otherwise
+    virtual bool isBounded() const;
+
     /// Check if a parameter pair lies inside the domain of this surface
     virtual bool inDomain(double u, double v, double eps=1.0e-4) const;
 
@@ -196,17 +135,26 @@ namespace Go
     /// Check if a parameter pair lies at the boundary of this surface
     virtual bool onBoundary(double u, double v, double eps=1.0e-4) const;
 
-    /// Return the closest parameter pair in the domain of this surface,
-    /// given an initial parameter pair
+    /// Fetch the parameter value in the parameter domain of the surface
+    /// closest to the parameter pair (u,v)
     virtual Point closestInDomain(double u, double v) const;
+
+    /// set the parameter domain to a given rectangle
+    /// \param u1 new min. value of first parameter span
+    /// \param u2 new max. value of first parameter span
+    /// \param v1 new min. value of second parameter span
+    /// \param v2 new max. value of second parameter span
+    virtual void setParameterDomain(double u1, double u2, double v1, double v2);
 
     /// Returns the anticlockwise, outer boundary loop of the surface.
     /// \param degenerate_epsilon edges whose length is smaller than this value
     ///        are ignored.
     /// \return a CurveLoop describing the anticlockwise, outer boundary loop of 
     ///         the surface.
+    /// A negative degenerate_epsilon indicates that all curves, also the
+    /// degenerate ones are wanted
     virtual CurveLoop outerBoundaryLoop(double degenerate_epsilon
-					  = DEFAULT_SPACE_EPSILON) const;
+                                        = DEFAULT_SPACE_EPSILON) const;
 
     /// Returns the anticlockwise outer boundary loop of the surface, together with 
     /// clockwise loops of any interior boundaries, such that the surface always is
@@ -217,7 +165,7 @@ namespace Go
     ///         outer boundary of the surface (clockwise), whereas the others describe
     ///         boundaries of interior holes (clockwise).
     virtual std::vector<CurveLoop> allBoundaryLoops(double degenerate_epsilon
-						      = DEFAULT_SPACE_EPSILON) const;
+                                                    = DEFAULT_SPACE_EPSILON) const;
 
     /// Creates a DirectionCone covering all normals to this surface.
     /// \return a DirectionCone (not necessarily the smallest) containing all normals 
@@ -232,15 +180,6 @@ namespace Go
     /// \return a DirectionCone (not necessarily the smallest) containing all tangents
     ///         to this surface along the specified parameter direction.
     virtual DirectionCone tangentCone(bool pardir_is_u) const;
-
-    /// Creates a composite box enclosing the surface. The composite box
-    /// consists of an inner and an edge box. The inner box is
-    /// supposed to be made from the interior of the surface, while the
-    /// edge box is made from the boundary curves. The default
-    /// implementation simply makes both boxes identical to the
-    /// regular bounding box.
-    /// \return the CompositeBox of the surface, as specified above
-    virtual CompositeBox compositeBox() const;
    
     /// Evaluates the surface's position for a given parameter pair.
     /// \param pt the result of the evaluation is written here 
@@ -278,13 +217,25 @@ namespace Go
 		       bool v_from_right = true,
 		       double resolution = 1.0e-12) const;
 
-
-
     /// Evaluates the surface normal for a given parameter pair
     /// \param n the computed normal will be written to this variable
     /// \param upar the first parameter
     /// \param vpar the second parameter
     virtual void normal(Point& n, double upar, double vpar) const;
+
+    /// Evaluate points in a grid.
+    /// The nodata value is applicable for bounded surfaces
+    /// and grid points outside the trimming loop(s) will
+    /// get this value
+    virtual void evalGrid(int num_u, int num_v, 
+			  double umin, double umax, 
+			  double vmin, double vmax,
+			  std::vector<double>& points,
+			  double nodata_val = -9999) const;
+
+    /// Fetch an arbitrary internal point in the surface
+    /// Used for localization purposes
+    virtual Point getInternalPoint(double& u, double& v) const;
 
     /// Get the curve(s) obtained by intersecting the surface with one of its constant
     /// parameter curves.  For surfaces without holes, this will be the parameter curve
@@ -337,28 +288,6 @@ namespace Go
     /// backwards...)
     virtual double nextSegmentVal(int dir, double par, bool forward, double tol) const;
 
-    /// Iterates to the closest point to pt on the surface. 
-    /// \param pt the point to find the closest point to
-    /// \param clo_u u parameter of the closest point
-    /// \param clo_v v parameter of the closest point
-    /// \param clo_pt the geometric position of the closest point
-    /// \param clo_dist the distance between pt and clo_pt
-    /// \param epsilon parameter tolerance (will in any case not be higher than
-    ///                sqrt(machine_precision) x magnitude of solution
-    /// \param domain_of_interest pointer to parameter domain in which to search for 
-    ///                           closest point. If a NULL pointer is used, the entire
-    ///                           surface is searched.
-    /// \param seed pointer to parameter values where iteration starts.
-    virtual void closestPoint(const Point& pt,
-			      double&        clo_u,
-			      double&        clo_v, 
-			      Point&       clo_pt,
-			      double&        clo_dist,
-			      double         epsilon,
-			      const RectDomain* domain_of_interest = NULL,
-			      double   *seed = 0) const ;
-
-
     /// Iterates to the closest point to pt on the boundary of the surface.
     /// \see closestPoint()
     virtual void closestBoundaryPoint(const Point& pt,
@@ -406,13 +335,6 @@ namespace Go
     /// Swaps the two parameter directions
     virtual void swapParameterDirection();
 
-    /// set the parameter domain to a given rectangle
-    /// \param u1 new min. value of first parameter span
-    /// \param u2 new max. value of first parameter span
-    /// \param v1 new min. value of second parameter span
-    /// \param v2 new max. value of second parameter span
-    virtual void setParameterDomain(double u1, double u2, double v1, double v2);
-
     /// Compute the total area of this surface up to some tolerance
     /// \param tol the relative tolerance when approximating the area, i.e.
     ///            stop iteration when error becomes smaller than
@@ -420,165 +342,16 @@ namespace Go
     /// \return the area calculated
     virtual double area(double tol) const;
 
-    /// The order of the edge indicators (bottom, right, top, left)
-    /// matches the edge_number of edgeCurve().
-
-    /// Query whether any of the four boundary curves are degenerate (zero length) within 
-    /// a certain tolerance.  In the below, we refer to 'u' as the first parameter and 'v'
-    /// as the second.
-    /// \param b 'true' upon return of function if the boundary (v = v_min) is degenerate
-    /// \param r 'true' upon return of function if the boundary (v = v_max) is degenerate
-    /// \param t 'true' upon return of function if the boundary (u = u_min) is degenerate
-    /// \param l 'true' upon return of function if the boundary (u = u_max) is degenerate
-    /// \param tolerance boundaries are considered degenerate if their length is shorter
-    ///        than this value, given by the user
-    /// \return 'true' if at least one boundary curve was found to be degenerate, 'false'
-    ///         otherwise.
-    virtual bool isDegenerate(bool& b, bool& r,
-			      bool& t, bool& l, double tolerance) const;
-
-    /// Check for paralell and anti paralell partial derivatives in surface corners
+    /// Check for parallel and anti-parallel partial derivatives in surface corners
     virtual void getDegenerateCorners(std::vector<Point>& deg_corners, double tol) const;
 
-    /// Return surface corners, i.e joints betwee trimming curves, 
-    /// geometric and parametric points in that sequence
+    /// Return surface corners, geometric and parametric points
+    /// in that sequence
     virtual void 
       getCornerPoints(std::vector<std::pair<Point,Point> >& corners) const;
 
-    /// Check if the current surface is trimmed along constant parameter curves
-    virtual bool isIsoTrimmed(double tol) const;
-
-    /// Info on relation to corresponding volume
-    /// Return value: -1=none, 0=umin, 1=umax, 2=vmin,  3=vmax, 4=wmin, 5=wmax
-    /// orientation = -1 and return value >= 0: the orientation of the surface 
-    /// compared to the volume boundary is not known or the two surfaces 
-    /// are coincident but not identical
-    int whichBoundary(double tol, int& orientation, bool& swap) const;
-
-    bool atBoundary() const
-    {
-      return (at_bd_ >= 0);
-    }
-
-    virtual bool isBoundarySurface() const
-    {
-      return (at_bd_ >= 0);
-    }
-
-    /// Volume parameter corresponding to surface parameter
-    Point volumeParameter(double u_par, double v_par) const;
-
-    /// Get volume
-    shared_ptr<const ParamVolume> getVolume() const
-      {
-	return volume_;
-      }
-
-    /// Get volume
-    shared_ptr<ParamVolume> getVolume() 
-      {
-	return volume_;
-      }
-
-    /// Set/replace volume. NB! Use care
-    void setVolume(shared_ptr<ParamVolume> volume)
-    {
-      volume_ = volume;
-    }
-
-    /// Check existence of parameter surface
-    bool hasParameterSurface() const
-    {
-      return (psurf_.get() != NULL);
-    }
-
-    /// Get parameter surface
-    shared_ptr<const ParamSurface> parameterSurface() const
-      {
-	return psurf_;
-      }
-
-    /// Get parameter surface
-    shared_ptr<ParamSurface> parameterSurface() 
-      {
-	return psurf_;
-      }
-
-    /// Check existence of space surface
-    bool hasSpaceSurface() const
-    {
-      return (spacesurf_.get() != NULL);
-    }
-
-    /// Get space surface
-    shared_ptr<const ParamSurface> spaceSurface() const
-      {
-	return spacesurf_;
-      }
-
-    /// Get space surface
-    shared_ptr<ParamSurface> spaceSurface() 
-      {
-	return spacesurf_;
-      }
-
-    /// For internal use. Careful!
-    void setSpaceSurface(shared_ptr<ParamSurface> spacesurf)
-    {
-      spacesurf_ = spacesurf;
-    }
-
-    /// For internal use. Careful!
-    void setCreationHistory(int hist)
-    {
-      creation_history_ = hist;
-    }
-
-    /// History query
-    int getCreationHistory() const
-    {
-      return creation_history_;
-    }
-
-    /// Query whether the parameter surface or the space surface is prefered 
-    /// for computation in this object.
-    bool parPref() const
-    { return prefer_parameter_; }
-
-    /// Fetch the constant parameter value of the volume associated with this surface
-    double getConstVal() const
-    {
-      return constval_;
-    }
-
-    /// Fetch the constant parameter direction of the volume, if any, associated 
-    // with this surface
-    /// \param return value: 0 = not set, 1 = u-parameter constant, 
-    /// 2 = v-parameter constant, 3 = w-parameter constant
-    // 1=u_parameter constant, 2=v_parameter constant, 3=w-parameter constant
-    int getConstDir() const
-    {
-      return constdir_;
-    }
-
-    /// Unset parameter surface information
-    void unsetParamSurf();
-
-    /// Check if the surface has stored information about an original
-    /// surface
-    virtual bool hasParentSurface() const
-    {
-      return spacesurf_->hasParentSurface();
-    }
-      
-    /// Return an eventual original surface
-    virtual shared_ptr<ParamSurface> getParentSurface() 
-    {
-      return spacesurf_->getParentSurface();
-    }
-      
-    /// Check if the surface is linear in one or both parameter directions
-    virtual bool isLinear(Point& dir1, Point& dir2, double tol);
+    /// Check if the surface is planar. 
+    virtual bool isPlanar(Point& normal, double tol);
 
    /// Check if a polynomial element (for spline surfaces) intersects the
     /// (trimming) boundaries of this surface
@@ -591,13 +364,7 @@ namespace Go
     /// Note that a touch with the boundaries of the underlying surfaces
     /// is not consdered a boundary intersection while touching a trimming
     /// curve is seen as an intersection
-    virtual int ElementOnBoundary(int elem_ix, double eps)
-    {
-      if (spacesurf_.get())
-	return spacesurf_->ElementOnBoundary(elem_ix, eps);
-       else
-	 return -1;
-    }
+    virtual int ElementOnBoundary(int elem_ix, double eps);
 
    /// Check if a polynomial element (for spline surfaces) intersects the
     /// (trimming) boundaries of this ftSurface, is inside or outside
@@ -605,47 +372,36 @@ namespace Go
     /// values. Sequence of coordinates: x runs fastest, then y
     /// \param eps: Intersection tolerance
     /// \return -1: Not a spline surface or element index out of range
-    ///          0: Outside trimmed volume
+    ///          0: Outside trimmed surface
     ///          1: On boundary (intersection with boundary found)
     ///          2: Internal to trimmed surfaces
     /// Note that a touch with the boundaries of the underlying surface
     /// is not consdered a boundary intersection while touching a trimming
     /// curve is seen as an intersection
-    virtual int ElementBoundaryStatus(int elem_ix, double eps)
-    {
-       if (spacesurf_.get())
-	 return spacesurf_->ElementBoundaryStatus(elem_ix, eps);
-       else
-	 return -1;
-    }
+    virtual int ElementBoundaryStatus(int elem_ix, double eps);
 
-  protected:
-    /// The underlying volume
-    shared_ptr<ParamVolume> volume_;
-    /// The surface in the parameter domain of the volume
-    /// May point to null.
-    shared_ptr<ParamSurface> psurf_;
-    /// An instance of the surface in the volume. May point to null.
-    shared_ptr<ParamSurface> spacesurf_;
-    /// Which representation to prefer if both exist
-    bool prefer_parameter_;
+    shared_ptr<ParamSurface> baseSurface()
+    { return surface_; }
 
-    /// More detailed specification of a constant parameter surface
-    int constdir_; ///0=not set, 1=u_parameter constant, 2=v_parameter constant, 3=w-parameter constant
-    double constval_;  /// Value of constant parameter
-    int at_bd_;  /// -1=no, 0=umin, 1=umax, 2=vmin, 3=vmax, 4=wmin, 5=wmax
-    int orientation_;  /// Orientation of constant parameter surface relative to the
-    /// underlying volume
-    /// -1 and at_bd >= 0: the orientation of the surface compared to the 
-    /// volume boundary is not known or the two surfaces are coincident
-    /// but not identical
-    bool swap_;
+ protected:
 
-    /// Tag to save history information
-    /// -1: Not set, 1: Splitting surface
-    int creation_history_;
-  };
+    shared_ptr<ParamSurface> surface_;
+    double offset_dist_;
+    double epsgeo_;
+    bool self_int_;
+
+    CurveLoop offset_outer_bd_loop_; // Created when needed.
+
+    shared_ptr<SplineSurface> offset_surface_;
+
+    void createOffsetOuterBdLoop();
+    
+};
+
 
 } // namespace Go
 
-#endif // _SURFACEONVOLUME_H
+
+
+#endif // _OFFSETSURFACE_H
+
