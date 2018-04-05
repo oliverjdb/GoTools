@@ -211,11 +211,15 @@ namespace Go
   void writePostscriptSuppLR(Go::LRSplineSurface& lr_spline_sf, std::string outfile)
   {
 	  double scale = 1000;
-	  
+        
+          std::string meshfilename = outfile + std::string("_mesh.eps");
+          std::ofstream outmsh(meshfilename);
+	  writePostscriptMesh(lr_spline_sf.mesh(),outmsh);
+ 
 	  int lrbcount = 0;
 	  for (LRSplineSurface::BSplineMap::const_iterator el_it = lr_spline_sf.basisFunctionsBegin(); el_it != lr_spline_sf.basisFunctionsEnd(); ++el_it) {
 		  
-		  std::string filename = outfile + std::to_string(lrbcount) + std::string(".eps");
+		  std::string filename = outfile + std::string("lr") + std::to_string(lrbcount) + std::string(".eps");
 		  std::cout << filename << std::endl;
 		  std::ofstream out(filename);
 		  
@@ -261,4 +265,183 @@ namespace Go
 	  }
 	 
   }
+
+  void writePostscriptSuppMS(Go::LRSplineSurface& lrs, std::string outfile)
+  {
+          double scale = 1000;
+          int lrbcount = 0;
+
+          Mesh2D msh = lrs.mesh();
+
+          std::vector<int> idx,idy;
+
+          for (int ix = 0; ix < msh.numDistinctKnots(XFIXED); ++ix ) {
+             if (msh.nu(XFIXED,ix,0,msh.numDistinctKnots(YFIXED)-1) >= 1) { 
+              idx.push_back(ix);
+              std::cout << " " << msh.kval(XFIXED,ix);             
+             }
+          } 
+           std::cout << std::endl;
+          for (int ix = 0; ix < msh.numDistinctKnots(YFIXED); ++ix ) {
+             if (msh.nu(YFIXED,ix,0,msh.numDistinctKnots(XFIXED)-1) >= 1) { 
+                idy.push_back(ix);
+                    std::cout << " " << msh.kval(YFIXED,ix);    
+             }
+          }
+          std::cout << std::endl;
+
+
+
+
+          for (int iy = 0; iy < idy.size()-lrs.degree(XFIXED)-1; ++iy ) {
+            for (int ix = 0; ix < idx.size()-lrs.degree(YFIXED)-1; ++ix ) {
+              shared_ptr<Mesh2D> sub = msh.subMesh(idx[ix],idx[ix+lrs.degree(YFIXED)+1],idy[iy],idy[iy+lrs.degree(XFIXED)+1]);
+              //std::cout << sub->minParam(XFIXED) << " " << sub->maxParam(XFIXED) << "\n" << sub->minParam(YFIXED) << " " << sub->maxParam(YFIXED) << "\n"<< std::endl;
+                int xs=sub->numDistinctKnots(XFIXED);
+                std::vector<int> A(sub->numDistinctKnots(XFIXED)*sub->numDistinctKnots(YFIXED),0); 
+                
+                std::vector<std::vector<int>> AA(sub->numDistinctKnots(YFIXED));
+                for (int jx=0; jx!=sub->numDistinctKnots(YFIXED); ++jx) {
+                  AA[jx] = std::vector<int>(sub->numDistinctKnots(XFIXED),0);
+                }
+
+                for (auto el_it=sub->begin(); el_it!=sub->end(); ++el_it) {
+                  A[(*el_it)[1]*sub->numDistinctKnots(XFIXED)+(*el_it)[0]] = 1;
+                  A[(*el_it)[1]*sub->numDistinctKnots(XFIXED)+(*el_it)[2]] = 1;
+                  A[(*el_it)[3]*sub->numDistinctKnots(XFIXED)+(*el_it)[0]] = 1;
+                  A[(*el_it)[3]*sub->numDistinctKnots(XFIXED)+(*el_it)[2]] = 1;
+                  AA[(*el_it)[1]][(*el_it)[0]] = 1;
+                  AA[(*el_it)[1]][(*el_it)[2]] = 1;
+                  AA[(*el_it)[3]][(*el_it)[0]] = 1;
+                  AA[(*el_it)[3]][(*el_it)[2]] = 1;
+                }
+                
+                //std::cout << "Matrix\n";
+                //for (int ixx=0; ixx!=A.size(); ++ixx) { 
+                //  std::cout << A[ixx] << " ";  if ((ixx+1)%sub->numDistinctKnots(XFIXED)==0 ) std::cout << "\n"; }
+                //  std::cout <<  std::endl;
+                std::cout << "Matrix\n";
+                for (int jx=0; jx!=sub->numDistinctKnots(YFIXED); ++jx) {
+                  for (int kx=0; kx!=sub->numDistinctKnots(XFIXED); ++kx) {
+                    std::cout << AA[jx][kx] << " ";
+}  std::cout <<  std::endl;
+
+                }
+
+                
+
+                for (int jx=0; jx!=sub->numDistinctKnots(YFIXED); ++jx) {
+                  for (int kx=0; kx!=sub->numDistinctKnots(XFIXED); ++kx) {
+                    if (AA[jx][kx]) { 
+                      int count_x = 0;
+                      int count_y = 0;
+                      for (int jxx=jx; jxx!=sub->numDistinctKnots(YFIXED); ++jxx) count_x += AA[jxx][kx];
+                      for (int kxx=kx; kxx!=sub->numDistinctKnots(XFIXED); ++kxx) count_y += AA[jx][kxx];
+                      if (count_x < lrs.degree(YFIXED)+1 || count_y < lrs.degree(XFIXED)+1) continue;
+                    }
+                    for (int jxx=jx+1; jxx!=sub->numDistinctKnots(YFIXED); ++jxx) {
+                      for (int kxx=kx+1; kxx!=sub->numDistinctKnots(XFIXED); ++kxx) {
+                        if (AA[jxx][kxx] == 0 || sub->nu(XFIXED,jxx,kx,kxx) == 0 || sub->nu(YFIXED,kxx,jx,jxx) == 0 ) continue;
+                      }
+                    }
+
+                  }  
+
+                }
+
+
+//for (int jx=0; jx!=A.size(); ++jxx) { 
+                //  std::cout << A[ixx] << " ";  if ((ixx+1)%sub->numDistinctKnots(XFIXED)==0 ) std::cout << "\n"; }
+                //  std::cout <<  std::endl;
+
+        /*        for (int vix=0; vix!=sub->numDistinctKnots(YFIXED); ++vix) {
+                  if (A[vix]) { 
+                    int count_x = 0;
+                    int count_y = 0;
+                    for (int wx=0; wx!=((int) (vix/sub->numDistinctKnots(XFIXED))); ++wx) count_x += A[wx];
+
+
+                    for (int wx=0; wx!=(A.size() % sub->numDistinctKnots(YFIXED)); ++wx) count_y += A[wx];
+                    if (count_x < lrs.degree(YFIXED)+1 || count_y < lrs.degree(XFIXED)+1) continue;
+
+                  }
+                } 
+                   if (A[vix]) for (int count=0; count!=(A.size() % sub->numDistinctKnots(XFIXED)); ++count); 
+                }*/
+               } 
+         
+       }           
+
+
+
+
+
+
+ /*  
+                
+
+
+
+
+
+
+                  double vix = sub->kval(XFIXED,(*el_it)[0]);
+                  double viy = sub->kval(YFIXED,(*el_it)[1]);
+
+                 
+
+                  int count_x = 0;
+                  int count_y = 0;
+                  for (int ix=(*el_it)[0]; ix<sub->numDistinctKnots(YFIXED); ++ix) count_x += sub.nu(XFIXED,ix,(*el_it)[1],(*el_it)[1]+1);
+                  for (int iy=(*el_it)[1]; iy<sub->numDistinctKnots(XFIXED); ++iy) count_y += sub.nu(YFIXED,iy,(*el_it)[0],(*el_it)[0]+1);
+                  if (count_x < lrs.degree(XFIXED)+1 || count_y < lrs.degree(YFIXED)+1) continue;
+                  for (auto el_it2=el_it; el_it2!=sub->end(); ++el_it2) {
+                    if ((*el_it2)[2]   (*el_it2)[3]) ) { 
+                      double vkx = sub->kval(XFIXED,(*el_it2)[0]);
+                      double vky = sub->kval(YFIXED,(*el_it2)[1]);
+                    }
+ 
+	            if (vkx <= vix || vky <= viy ) continue;
+                    if ()
+                  }
+                }
+              
+            }
+          }
+*/
+          for (LRSplineSurface::BSplineMap::const_iterator el_it = lrs.basisFunctionsBegin(); el_it != lrs.basisFunctionsEnd(); ++el_it) {
+
+                  std::string filename = outfile + std::string("lr") + std::to_string(lrbcount) + std::string(".eps");
+                  std::cout << filename << std::endl;
+                  std::ofstream out(filename);
+
+                  writeMesh(lrs.mesh(), out, scale);
+                  //out << "/show-ctr {\n  dup stringwidth pop\n  -2 div 0\n  rmoveto show\n} def\n";
+
+                  double umin = el_it->second->umin()*scale;
+                  double umax = el_it->second->umax()*scale;
+                  double vmin = el_it->second->vmin()*scale;
+                  double vmax = el_it->second->vmax()*scale;
+
+                  out << "newpath\n";
+                  out << umin << " " << vmin << " moveto\n";
+                  out << umin << " " << vmax << " lineto\n";
+                  out << umax << " " << vmax << " lineto\n";
+                  out << umax << " " << vmin << " lineto\n";
+                  out << "closepath\n";
+                  out << "gsave\n";
+                  out << "1 0 0 setrgbcolor\n";
+                  out << "fill\n";
+                  out << "grestore\n";
+                  out << "4 setlinewidth\n";
+                  out << "0.75 setgray\n";
+                  out << "stroke\n";
+
+                  lrbcount++;
+                  writeMesh(lrs.mesh(), out, scale);
+
+                  out << "stroke\n%%EOF\n";
+  }
+}
+
 } // end of namespace Go.

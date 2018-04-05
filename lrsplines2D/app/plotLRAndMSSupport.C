@@ -60,17 +60,19 @@ typedef std::vector<LRBSpline2D*>::iterator lrb_it;
 vector<double> make_regular_kvec(int degree, int num_intervals, double parmin, double parmax)// bool full_mult_bd=false)
 //------------------------------------------------------------------------------
 {
-	assert(parmin < parmax);
+  assert(parmin < parmax);
 
-	vector<double> result;
-	const double interval_size = (parmax - parmin) / num_intervals;
+  vector<double> result;
+  const double interval_size = (parmax - parmin) / num_intervals;
 
-	//if (full_mult_bd) for (int i = 0; i != degree; ++i) result.push_back(parmin);
-	for (int i = 0; i != num_intervals+1; ++i) result.push_back(parmin + i * interval_size);
-	//if (full_mult_bd) for (int i = 0; i != degree; ++i) result.push_back(parmax);
+  //if (full_mult_bd) for (int i = 0; i != degree; ++i) result.push_back(parmin);
+  for (int i = 0; i != num_intervals+1; ++i) result.push_back(parmin + i * interval_size);
+  //if (full_mult_bd) for (int i = 0; i != degree; ++i) result.push_back(parmax);
 
-	return result;
+  return result;
 }
+
+
 
 int main(int argc, char *argv[])
 {
@@ -79,10 +81,10 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  int deg_x = 2;
-  int deg_y = 2;
-  int elements_x = 5;
-  int elements_y = 5;
+  int deg_x = 4;
+  int deg_y = 4;
+  int elements_x = 7;
+  int elements_y = 7;
   double parmin_x = 0;
   double parmin_y = 0;
   double parmax_x = 1.0;
@@ -101,13 +103,23 @@ int main(int argc, char *argv[])
 
   LRSplineSurface lrs(deg_x, deg_y, elements_x-deg_x, elements_y-deg_y, 1, &kvec_x[0], &kvec_y[0]);
   
-  lrs.refine(XFIXED,0.56,0.0,0.75);
-  
-  std::string prefix(argv[1]);
-  
-  writePostscriptSuppLR(lrs, prefix);
-  //writePostscriptMeshOverload(lrs,ofs);
 
+ 
+
+  lrs.refine(YFIXED,0.62,0.0,0.7);
+  lrs.refine(YFIXED,0.4,0.29,1.01);
+  lrs.refine(XFIXED,0.35,0.0,0.6);
+  lrs.refine(XFIXED,0.5,0.34,1.01);
+  lrs.refine(XFIXED,0.62,0.34,1.01);
+  
+  cout << lrs.paramMin(XFIXED) << " " << lrs.paramMax(XFIXED) << endl;
+  cout << lrs.paramMin(YFIXED) << " " << lrs.paramMax(YFIXED) << endl;
+
+
+  std::string prefix(argv[1]);
+ 
+  writePostscriptSuppMS(lrs, prefix);
+  //writePostscriptMeshOverload(lrs,ofs);
   /*std::vector<LRBSpline2D*> bb = LinDepUtils::unpeelableBasisFunctions ( lrs );
   cout << "Is peelable: " << LinDepUtils::isPeelable(lrs) << endl;
   cout << "No. unpeelable basis functions: " << bb.size() << endl;

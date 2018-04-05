@@ -63,6 +63,8 @@ namespace Go
 
   void writePostscriptSuppLR(Go::LRSplineSurface& lr_spline_sf, std::string outfile);
 
+  void writePostscriptSuppMS(Go::LRSplineSurface& lrs, std::string outfile);
+
 }; // End namespace Go
 
 
