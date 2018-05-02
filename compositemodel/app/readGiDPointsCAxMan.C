@@ -61,7 +61,7 @@ int main( int argc, char* argv[] )
       // scale: multiplication factor used for change of units, same in all directions.
       // shift_x/y/z: translation applied after the application of the scale factor, used to realign to the origin.
       // bbmin/max_x/y/z: bounding box after scaling and translation. Only points inside the bounding box will be written out.
-      cout << "Usage:  " << argv[0] << " gid_result.res gid_mesh.msh output.txt nominal_geom.g2 [scale] (optional) [shift_x shift_y shift_z] (optional) "
+      cerr << "Usage:  " << argv[0] << " gid_result.res gid_mesh.msh output.txt nominal_geom.g2 surf_dist_mesh.mesh [scale] (optional) [shift_x shift_y shift_z] (optional) "
 			            << "[bbmin_x bbmax_x bbmin_y bbmax_y bbmin_z bbmax_z] (optional)" << endl;
       return 1;
     }
@@ -99,13 +99,13 @@ int main( int argc, char* argv[] )
 
   in_res.close();
 
-  float scale = (argc > 5) ? atof(argv[5]): 1.0f;
-  float bbmin_x = (argc > 9) ? atof(argv[9]) : -FLT_MAX;
-  float bbmax_x = (argc > 10) ? atof(argv[10]) : FLT_MAX;
-  float bbmin_y = (argc > 11) ? atof(argv[11]) : -FLT_MAX;
-  float bbmax_y = (argc > 12) ? atof(argv[12]) : FLT_MAX;
-  float bbmin_z = (argc > 13) ? atof(argv[13]) : -FLT_MAX;
-  float bbmax_z = (argc > 14) ? atof(argv[14]) : FLT_MAX;
+  float scale = (argc > 6) ? atof(argv[6]): 1.0f;
+  float bbmin_x = (argc > 10) ? atof(argv[10]) : -FLT_MAX;
+  float bbmax_x = (argc > 11) ? atof(argv[11]) : FLT_MAX;
+  float bbmin_y = (argc > 12) ? atof(argv[12]) : -FLT_MAX;
+  float bbmax_y = (argc > 13) ? atof(argv[13]) : FLT_MAX;
+  float bbmin_z = (argc > 14) ? atof(argv[14]) : -FLT_MAX;
+  float bbmax_z = (argc > 15) ? atof(argv[15]) : FLT_MAX;
 
   ifstream in_mesh(argv[2]);
   vector<float> pts;
@@ -147,18 +147,18 @@ int main( int argc, char* argv[] )
   }
   in_mesh.close();
 
-  if (pts.size() == results.size()) std::cout << "files seem to correspond ok" << std::endl;
-  else std::cout << "something seems to be wrong with the input files" << std::endl;
+  if (pts.size() == results.size()) std::cerr << "files seem to correspond ok" << std::endl;
+  else std::cerr << "something seems to be wrong with the input files" << std::endl;
 
-  std::cout << "Number of points/results is " << pts.size() << " / " << results.size() << "\n\n" << std::endl; 
-  std::cout << "Number of points removed (because they belong to voids) is " << vp_count << std::endl;
+  std::cerr << "Number of points/results is " << pts.size() << " / " << results.size() << "\n\n" << std::endl; 
+  std::cerr << "Number of points removed (because they belong to voids) is " << vp_count << std::endl;
  
   std::vector<float> distorted;
 
   vector<float> shift(3);
-  shift[0] = (argc > 6) ? atof(argv[6]) : 0.0f;
-  shift[1] = (argc > 7) ? atof(argv[7]) : 0.0f;
-  shift[2] = (argc > 8) ? atof(argv[8]) : 0.0f; 
+  shift[0] = (argc > 7) ? atof(argv[7]) : 0.0f;
+  shift[1] = (argc > 8) ? atof(argv[8]) : 0.0f;
+  shift[2] = (argc > 9) ? atof(argv[9]) : 0.0f; 
 
   for (int ix=0; ix!=pts.size()/3; ++ix) {
     float a = pts[3*ix]+results[3*ix]+shift[0];
@@ -184,4 +184,93 @@ int main( int argc, char* argv[] )
   }
   ofs << endl;
   //cout << "barycenter " << barya << " " << baryb << " " << baryc << endl; 
+
+
+  //////////////////////////////////////////////////////////////////////////
+  // WORKAROUND FOR ...
+  vector<float> deforms;
+  boundary_indices.clear();
+
+  in_res =  ifstream(argv[1]);
+
+  // Don't need first 3 lines
+  std::getline(in_res, line);
+  std::getline(in_res, line);
+  std::getline(in_res, line);
+
+  index;
+  a,b,c;
+  while (std::getline(in_res, line))
+  {
+    if (line.substr(0,10) == string("End Values")) { break;} // eof
+        std::istringstream ss(line);
+        ss >> index >> a >> b >> c;
+        boundary_indices.push_back(index);
+        deforms.push_back(a);
+        deforms.push_back(b);
+        deforms.push_back(c);
+  }
+
+  in_res.close();
+
+  in_mesh = ifstream(argv[2]);
+  vector<float> newpts;
+  // Ignore first two lines
+  std::getline(in_mesh, line);
+  std::getline(in_mesh, line);
+  jndex = 0;
+  int kndex = 0;
+  while (std::getline(in_mesh, line))
+  {   
+    if (line.substr(0,15) == "End Coordinates") { break; } // we don't need any more
+      std::istringstream ss(line);
+      ss >> index;
+      ss >> a >> b >> c;
+      a *= scale;
+      b *= scale;
+      c *= scale;
+      if (index == boundary_indices[jndex]) {
+        a += deforms[3*kndex];
+        b += deforms[3*kndex+1];
+        c += deforms[3*kndex+2];
+        kndex++;
+      }
+      newpts.push_back(a);
+      newpts.push_back(b); 
+      newpts.push_back(c);
+      jndex++;
+  }   
+
+  // Don't need next line
+  std::getline(in_mesh, line);
+
+  int tndex, t1, t2, t3, t4, tmp;
+  vector<int> tets;
+  int tc=0;
+  while (std::getline(in_mesh, line))
+  {
+    if (line.substr(0,12) == "End Elements") { break; } // we don't need any more
+    std::istringstream ss(line);
+    ss >> tndex >> t1 >> t2 >> t3 >> t4 >> tmp;
+    tets.push_back(t1);
+    tets.push_back(t2);
+    tets.push_back(t3);
+    tets.push_back(t4);
+    tc++;
+  }
+  in_mesh.close();
+
+  ofstream ofmesh(argv[5]);
+
+  ofmesh << "MeshVersionFormatted 1\nDimension\n3\nVertices\n"; 
+  ofmesh << newpts.size()/3 << endl; 
+  for (int ix=0; ix!=newpts.size()/3; ++ix) {
+    ofmesh << newpts[3*ix] << " " << newpts[3*ix+1] << " " << newpts[3*ix+2] << " " << 0 << "\n";
+  }
+  ofmesh << "Tetrahedra\n" << tets.size()/4 << endl;
+  for (int ix=0; ix!=tets.size()/4; ++ix) {
+    ofmesh << tets[4*ix] << " " << tets[4*ix+1] << " " << tets[4*ix+2] << " " << tets[4*ix+3] << " " << 0 << endl;
+  }
+  ofmesh << "End" << endl;
+
 }
