@@ -112,6 +112,7 @@ public slots:
     //    void change_resolution_dialog();
     void display_object_properties();
     void assign_texture();
+    void set_point_size();
     void set_curve_resolutions();
     virtual void set_surface_resolutions();
     void enable_objects();
@@ -137,6 +138,9 @@ public slots:
     // For a cv or surface we plot the 3D control net. If surface is
     // trimmed we plot the net of the underlying sf.
     void show_control_nets();
+
+    // Extract all boundary curves for selected BoundedSurface's and add to object list.
+    void show_boundary_curves();
 
     void set_random_color();
 
@@ -165,6 +169,8 @@ protected:
     shared_ptr <QWidget> actionForm;
 
 protected slots:
+    void changePointSize(double new_size); // Change point size for all selected point sets.
+
     void changeCurveResolutions(int new_res); // Change resolution of
 					      // all selected curves.
     virtual void

@@ -363,6 +363,12 @@ void CurveBoundedDomain::getInternalPoint(double& upar, double& vpar) const
 		upar = 0.5*(inside[max_ix].first + inside[max_ix].second);
 	      else
 		vpar = 0.5*(inside[max_ix].first + inside[max_ix].second);
+
+	      // Check if we have found a boundary point
+	      Vector2D ppnt(upar, vpar);
+	      bool is_boundary = isOnBoundary(ppnt, tolerance);
+	      if (!is_boundary)
+		break;
 	    }
 	}
     }
@@ -538,6 +544,12 @@ void CurveBoundedDomain::getInsideIntervals(int pardir, double parval1,
   Point parpt(parval1, parval2);
   double len1 = (parbox.umax()-parbox.umin())+(parbox.vmax()-parbox.vmin());
   double len2 = mid.dist(parpt);
+  if (len1 == 0.0)
+  {
+      MESSAGE("Degenerate domain!");
+      return;
+  }
+
   double mult_fac = 2.0*(len1+len2)/len1;  // The curve with which to intersect
   // should be much larger than the trimmed domain
 
@@ -787,6 +799,8 @@ findPcurveInsideSegments(const SplineCurve& curve,
     vector<pair<int,int> > curve_pos;
     vector<pair<int,int> > int_curve_pos;
 
+    const double deg_tol = 1.0e-12;
+
     double epsge = 0.000001;
     for (ki=0; ki<int(loops_.size()); ki++) {
 	for (kj=0; kj< loops_[ki]->size(); kj++) {
@@ -796,6 +810,13 @@ findPcurveInsideSegments(const SplineCurve& curve,
 	    par_crv->write(of);
 #endif
 
+            // Degenerate curves lack the topology needed by this routine. Any intersections will be
+            // handled by the adjacent segments. And degenerate parameter curves are not needed and
+            // should have been removed from the loop.
+            if (par_crv->estimatedCurveLength() < deg_tol)
+            {
+                continue;
+            }
 	    // Intersect
 	    intersect2Dcurves(&curve, par_crv.get(), epsge, intersection_par, 
 			      pretopology, int_crvs);

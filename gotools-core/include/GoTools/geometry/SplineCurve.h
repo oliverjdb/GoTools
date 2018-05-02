@@ -213,6 +213,12 @@ public:
     virtual SplineCurve* geometryCurve();
 
     // Inherited from ParamCurve
+    virtual SplineCurve* getSplineCurve() 
+    {
+      return this;
+    }
+
+    // Inherited from ParamCurve
     virtual DirectionCone directionCone() const;
 
     // Inherited from ParamCurve
@@ -561,6 +567,9 @@ public:
     virtual bool isAxisRotational(Point& centre, Point& axis, Point& vec,
 				  double& angle);
 
+    virtual bool isAxisRotational(Point& centre, Point& axis, Point& vec,
+				  double& angle, double& radius);
+
     /// Check if the curve is linear
     virtual bool isLinear(Point& dir, double tol);
 
@@ -571,6 +580,12 @@ public:
     /// Check if the curve lies in a plane with a given normal
     virtual bool isInPlane(const Point& norm,
 			   double eps, Point& pos) const;
+
+    /// Linearly extend curve by a given length before its start ('at_end' =
+    /// false) or after its end ('at_end' = true).  The length is measured in
+    /// the parametric domain if 'use_param' is true.
+    void enlarge(double len, bool at_end, bool use_param = false);
+    
 private:
     // Canonical data
     int dim_;

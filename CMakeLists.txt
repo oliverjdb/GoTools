@@ -19,11 +19,16 @@ endif()
 OPTION(GoTools_ENABLE_OPENMP "Include OPENMP?" OFF)
 IF(GoTools_ENABLE_OPENMP)
   FIND_PACKAGE(OpenMP REQUIRED)
-ENDIF(GoTools_ENABLE_OPENMP)
+ENDIF()
+
+OPTION(GoTools_ENABLE_LOGGER "Enable logger?" OFF)
+if (GoTools_ENABLE_LOGGER)
+  add_definitions(-DGOTOOLS_LOG)
+endif()
 
 # Generate header with version info
-CONFIGURE_FILE(gotools-core/include/GoTools/geometry/GoTools_version.h.in
-               ${PROJECT_SOURCE_DIR}/gotools-core/include/GoTools/geometry/GoTools_version.h @ONLY)
+#CONFIGURE_FILE(gotools-core/include/GoTools/geometry/GoTools_version.h.in
+#               ${PROJECT_SOURCE_DIR}/gotools-core/include/GoTools/geometry/GoTools_version.h @ONLY)
 
 
 # Set various compiler flags
@@ -39,11 +44,16 @@ SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DNVERBOSE")
 
 
 # Check if Boost is available
-SET(BOOST_LIBRARYDIR ${BOOST_ROOT}/lib64-msvc-10.0/)
-SET(Boost_ADDITIONAL_VERSIONS "1.47" "1.47.0"
-  "1.49" "1.49.0"
+IF(WIN32)
+  SET(BOOST_LIBRARYDIR ${BOOST_ROOT}/lib64-msvc-14.0/)
+ENDIF()
+SET(Boost_ADDITIONAL_VERSIONS
+  "1.65" "1.65.0"
+  "1.58" "1.58.0"
   "1.51" "1.51.0"
-  "1.58" "1.58.0")
+  "1.49" "1.49.0"
+  "1.47" "1.47.0"
+  )
 FIND_PACKAGE(Boost)
 
 # Check if compiler supports c++-0x

@@ -77,10 +77,13 @@ public:
     {}
     /// Constructor taking a dimension argument.
     /// Resulting point is of the specified dimension,
-    /// but not initialized.
+    /// and initialized to zero
     explicit Point(int dim)
 	: pstart_(new double[dim]), n_(dim), owns_(true)
-    {}
+    {
+      for (int ki=0; ki<dim; ++ki)
+	pstart_[ki] = 0.0;
+    }
     /// Constructor taking 2 arguments, makes the
     /// 2D-point (x,y).
     Point(double x, double y)
@@ -352,8 +355,15 @@ public:
     void normalize()
     {
 	double tl = length();
-	DEBUG_ERROR_IF(tl == 0.0, "Cannot normalize vector of zero length");
-	(*this) /= tl;
+	//DEBUG_ERROR_IF(tl == 0.0, "Cannot normalize vector of zero length");
+        if (tl > 0.0)
+        {
+            (*this) /= tl;
+        }
+        else
+        {
+            MESSAGE("Cannot normalize vector of zero length");
+        }
     }
 
     double normalize_checked() 

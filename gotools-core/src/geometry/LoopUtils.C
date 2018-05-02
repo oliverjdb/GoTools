@@ -128,11 +128,23 @@ LoopUtils::loopIsCCW(const vector<shared_ptr<SplineCurve> >& simple_par_loop,
 		"Empty input vector!");
 
     int ki;
-    int idx = (int)simple_par_loop.size()/2;
-    ALWAYS_ERROR_IF(simple_par_loop[idx]->dimension() != 2,
+    ALWAYS_ERROR_IF(simple_par_loop[0]->dimension() != 2,
 		"Input loop must be 2-dimensional.");
 
-    // We choose the mid parameter value on the middle curve in the loop.
+    // Select longest curve
+    int idx = 0;
+    double max_len = simple_par_loop[idx]->estimatedCurveLength();
+    for (ki=1; ki<int(simple_par_loop.size()); ki++)
+      {
+	double len = simple_par_loop[ki]->estimatedCurveLength();
+	if (len > max_len)
+	  {
+	    max_len = len;
+	    idx = ki;
+	  }
+      }
+
+    // We choose the mid parameter value on the chosen curve in the loop.
     double tpar =
       0.5*(simple_par_loop[idx]->startparam() + simple_par_loop[idx]->endparam());
 
@@ -150,7 +162,9 @@ LoopUtils::loopIsCCW(const vector<shared_ptr<SplineCurve> >& simple_par_loop,
 	box1.addUnionWith(box2);
       }
 
-    double length = 1.0 + (box1.low()).dist(box1.high()); // We make sure that we get to the outside of the loop.
+    double length = box1.low().dist(box1.high()); 
+    // We make sure that we get to the outside of the loop.
+    length = std::min(length+1.0, 1.5*length); 
     normal.normalize();
     Point end_pt = pnt[0] + length*normal;
     SplineCurve normal_curve = SplineCurve(pnt[0], end_pt);
@@ -301,10 +315,16 @@ LoopUtils::firstLoopInsideSecond(const vector<shared_ptr<CurveOnSurface> >& firs
    shared_ptr<SplineCurve> pcv;
    pcv = dynamic_pointer_cast<SplineCurve, ParamCurve>
        (first_ccw_loop[0]->parameterCurve());
-
+   if (pcv.get() == 0)
+     {
+       pcv = shared_ptr<SplineCurve>(first_ccw_loop[0]->parameterCurve()->geometryCurve());
+     }
 
    ALWAYS_ERROR_IF(pcv.get() == 0, "Unable to convert curve to SplineCurve");
    vector<double>::const_iterator iter = pcv->basis().begin();
+   int nmb_coefs = pcv->numCoefs();
+   nmb_coefs = nmb_coefs/2;
+   iter += nmb_coefs;
    while (iter[0] == iter[1]) {
        ++iter;
    }

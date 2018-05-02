@@ -42,6 +42,7 @@
 #include "GoTools/viewlib/gvObjectList.h"
 #include "GoTools/viewlib/gvPropertySheet.h"
 #include "GoTools/viewlib/gvGroupPropertySheet.h"
+#include "GoTools/viewlib/PointSizeSheet.h"
 #include "GoTools/viewlib/CurveResolutionSheet.h"
 #include "GoTools/viewlib/SurfaceResolutionSheet.h"
 #include "GoTools/tesselator/CurveTesselator.h"
@@ -55,6 +56,7 @@
 #include "GoTools/geometry/LineCloud.h"
 #include "GoTools/geometry/PointCloud.h"
 #include "GoTools/geometry/SplineCurve.h"
+#include "GoTools/viewlib/gvPointCloudPaintable.h"
 //#include "GoTools/viewlib/gvResolutionDialog.h"
 //#include "GoTools/viewlib/DataHandler.h"
 
@@ -89,22 +91,52 @@ class DataHandler;
 //class ParametricSurfaceTesselator;
 
 
+// define some color transformations
+#define RETURN_HSV(h, s, v) {HSV.H = h; HSV.S = s; HSV.V = v; return HSV;}
+#define RETURN_RGB(r, g, b) {RGB.R = r; RGB.G = g; RGB.B = b; return RGB;}
+#define min(x,y,z) (x<y) ? ((x<z)?x:z) : ((y<z)?y:z)
+#define max(x,y,z) (x>y) ? ((x>z)?x:z) : ((y>z)?y:z)
+#define UNDEFINED -1
+typedef struct {float R, G, B;} RGBType;
+typedef struct {float H, S, V;} HSVType;
+HSVType RGB_to_HSV( RGBType RGB ) {
+	// RGB are each on [0, 1]. S and V are returned on [0, 1] and H is
+	// returned on [0, 6]. Exception: H is returned UNDEFINED if S==0.
+	float R = RGB.R, G = RGB.G, B = RGB.B, v, x, f;
+	int i;
+	HSVType HSV;
 
-#define MAX_COLORS 12
-int colors[MAX_COLORS][3] = {
-  {255, 0, 0},
-  {0, 255, 0},
-  {0, 0, 255},
-  {255, 255, 0},
-  {255, 0, 255},
-  {0, 255, 255},
-  {128, 255, 0},
-  {255, 128, 0},
-  {128, 0, 255},
-  {255, 0, 128},
-  {0, 128, 255},
-  {0, 255, 128},
-};
+	x = min(R, G, B);
+	v = max(R, G, B);
+	if(v == x) RETURN_HSV(UNDEFINED, 0, v);
+	f = (R == x) ? G - B : ((G == x) ? B - R : R - G);
+	i = (R == x) ? 3 : ((G == x) ? 5 : 1);
+	RETURN_HSV(i - f /(v - x), (v - x)/v, v);
+}
+RGBType HSV_to_RGB( HSVType HSV ) {
+	// H is given on [0, 6] or UNDEFINED. S and V are given on [0, 1].
+	// RGB are each returned on [0, 1].
+	float h = HSV.H, s = HSV.S, v = HSV.V, m, n, f;
+	int i;
+	RGBType RGB;
+
+	if (h == UNDEFINED) RETURN_RGB(v, v, v);
+	i = floor(h);
+	f = h - i;
+	if ( !(i&1) ) f = 1 - f; // if i is even
+	m = v * (1 - s);
+	n = v * (1 - s * f);
+	switch (i) {
+		case 6:
+		case 0: RETURN_RGB(v, n, m);
+		case 1: RETURN_RGB(n, v, m);
+		case 2: RETURN_RGB(m, v, n)
+		case 3: RETURN_RGB(m, n, v);
+		case 4: RETURN_RGB(n, m, v);
+		case 5: RETURN_RGB(v, m, n);
+	}
+	RETURN_RGB(0,0,0); // should never reach here, but compiler complains
+}
 
 
 string getFileName(const string& s) {
@@ -688,6 +720,50 @@ void gvApplication::assign_texture()
 }
 
 //===========================================================================
+void gvApplication::set_point_size()
+//===========================================================================
+{
+
+    // We run through selected pt_sets and extract lowest size.
+    double low = -1.0;
+    int nmb_selected = 0;
+    for (int ki = 0; ki < data_.numObjects(); ++ki) {
+	if (data_.getSelectedStateObject(ki)) {
+	    ++nmb_selected;
+
+            gvPointCloudPaintable* paintable = dynamic_cast<gvPointCloudPaintable*>(data_.paintable(ki).get());
+            if (paintable == nullptr)
+            {
+                continue;
+            }
+
+	    double size = -1.0;
+	    if (paintable != nullptr) {
+		size = paintable->pointSize();
+                if (low < 0 || size < low)
+                {
+                    low = size;
+                }
+            }
+        }
+    }
+
+    if (nmb_selected == 0) {
+	QMessageBox::warning( this, "Changing pointset render size: ",
+			      "No object has been selected.",
+			      QMessageBox::Ok, Qt::NoButton);
+	return;
+    }
+
+    PointSizeSheet* sh = new PointSizeSheet(low);
+    sh->createSheet(this, view_);
+
+    connect(sh, SIGNAL(return_value(double)),
+	    this, SLOT(changePointSize(double)));
+
+}
+
+//===========================================================================
 void gvApplication::set_curve_resolutions()
 //===========================================================================
 {
@@ -700,6 +776,7 @@ void gvApplication::set_curve_resolutions()
 	    // Hmm ... Either a rectangular or parametric. Casting.
 	    CurveTesselator* tess =
 		dynamic_cast<CurveTesselator*>(data_.tesselator(ki).get());
+
 	    int res = -1;
 	    if (tess != 0) {
 		tess->getRes(res);
@@ -754,6 +831,10 @@ void gvApplication::set_surface_resolutions()
 		if (tess != 0) {
 		    tess->getRes(ures, vres);
 		}
+                else
+                {
+                    MESSAGE("Tesselator was not created!");
+                }
 	    }
 
 	    if (ures < 0 && vres < 0) {
@@ -1032,27 +1113,79 @@ void gvApplication::show_control_nets()
     add_objects(new_objs, new_cols);
 }
 
+
+void gvApplication::show_boundary_curves()
+//===========================================================================
+{
+    // We extract all objects currently selected.
+    vector<shared_ptr<Go::GeomObject> > sel_objs, not_sel_objs;
+    getSelectedObjects(sel_objs, not_sel_objs);
+    // We then extract those which are of the required types.
+    vector<shared_ptr<GeomObject> > sel_geoms;
+    vector<shared_ptr<GeomObject> > new_objs;
+    for (size_t ki = 0; ki < sel_objs.size(); ++ki)
+    {
+	if (sel_objs[ki]->instanceType() == Class_BoundedSurface)
+        {
+	    shared_ptr<BoundedSurface> bd_sf =
+		dynamic_pointer_cast<BoundedSurface>(sel_objs[ki]);
+
+            std::vector<CurveLoop> loops = bd_sf->allBoundaryLoops();
+            for (auto loop : loops)
+            {
+                for (auto curve : loop)
+                {
+                    if (curve->instanceType() == Class_CurveOnSurface)
+                    {
+                        shared_ptr<CurveOnSurface> cv_on_sf = dynamic_pointer_cast<CurveOnSurface>(curve);
+                        shared_ptr<ParamCurve> space_cv = cv_on_sf->spaceCurve();
+                        if (space_cv.get() != nullptr)
+                        {
+                            new_objs.push_back(space_cv);
+                        }
+                    }
+                }
+            }
+	    if (bd_sf->underlyingSurface()->instanceType() == Class_SplineSurface)
+            {
+		sel_geoms.push_back(bd_sf->underlyingSurface());
+	    }
+            else
+            {
+		not_sel_objs.push_back(sel_objs[ki]);
+	    }
+	}
+        not_sel_objs.push_back(sel_objs[ki]);
+    }
+
+    // Finally we send the new objs to the tesselator.
+    vector<shared_ptr<gvColor> > new_cols(new_objs.size());
+    add_objects(new_objs, new_cols);
+}
+
+
 //===========================================================================
 void gvApplication::set_random_color()
 //===========================================================================
 {
     srand ( time(NULL) );
-    int col_id = rand() % MAX_COLORS;
     for (int ki = 0; ki < data_.numObjects(); ++ki)
     {
-	if (data_.getSelectedStateObject(ki))
-	{
-	    col_id = col_id%MAX_COLORS;
-	    shared_ptr<gvColor> col = data_.color(ki);
-	    if (col.get() == NULL)
-	    {
-		col = shared_ptr<gvColor>(new gvColor());
-
-	    }
-	    for (int kj = 0; kj < 3; ++kj)
-		col->rgba[kj] = (float)colors[col_id][kj]/(float)255;
-	    ++col_id;
-	}
+        if (data_.getSelectedStateObject(ki))
+        {
+            HSVType newCol={4.6*rand()/RAND_MAX    ,  // hue        [0,4.6]
+                             .3*rand()/RAND_MAX +.4,  // saturation [.4,.7]
+                             .4*rand()/RAND_MAX +.55};// value    [.55,.95]
+            RGBType newColRGB = HSV_to_RGB(newCol);
+            shared_ptr<gvColor> col = data_.color(ki);
+            if (col.get() == NULL)
+            {
+                col = shared_ptr<gvColor>(new gvColor());
+            }
+            col->rgba[0] = newColRGB.R;
+            col->rgba[1] = newColRGB.G;
+            col->rgba[2] = newColRGB.B;
+        }
     }
 
     int num_objs = data_.numObjects();
@@ -1199,31 +1332,32 @@ void gvApplication::buildGUI()
  	menu_->addMenu(object_menu_);
 	object_menu_->addAction("Properties...", this, 
 				SLOT(display_object_properties()),
-			       Qt::CTRL+Qt::Key_P);//, 1);
+			       Qt::CTRL+Qt::Key_P);
 	object_menu_->addAction("Assign texture...", this, 
 				SLOT(assign_texture()),
-			       Qt::Key_T);//, 2);
+			       Qt::Key_T);
+	object_menu_->addAction("Point Sizes...", this, 
+			       SLOT(set_point_size()));
 	object_menu_->addAction("Curve Resolutions...", this, 
-			       SLOT(set_curve_resolutions()));//,
-// 				0, 3);
+			       SLOT(set_curve_resolutions()));
 	object_menu_->addAction("Surface Resolutions...", this, 
-			       SLOT(set_surface_resolutions()));//,
-// 				0, 4);
+			       SLOT(set_surface_resolutions()));
 	object_menu_->addAction("Show control nets...", this, 
-			       SLOT(show_control_nets()));//,
-// 				 0, 5 );
+			       SLOT(show_control_nets()));
+	object_menu_->addAction("Show boundary curves...", this, 
+			       SLOT(show_boundary_curves()));
 	object_menu_->addAction("Set random color...", this, 
-			       SLOT(set_random_color()));//,
-// 				 0, 5 );
+			       SLOT(set_random_color()),
+                   Qt::CTRL+Qt::Key_C);
 	object_menu_->addAction("Toggle enable", this, 
 				SLOT(toggle_enable()),
-			       Qt::CTRL+Qt::Key_T);//, 6);
+			       Qt::CTRL+Qt::Key_T);
 	object_menu_->addAction("Enable objects", this, 
 				SLOT(enable_objects()),
-			       Qt::CTRL+Qt::Key_E);//, 7);
+			       Qt::CTRL+Qt::Key_E);
 	object_menu_->addAction("Disable objects", this, 
 				SLOT(disable_objects()),
-			       Qt::CTRL+Qt::Key_D);//, 8);
+			       Qt::CTRL+Qt::Key_D);
 
 	// object_menu_->addAction("Translate to origin", this, 
 	// 			SLOT(translate_to_origin()));
@@ -1269,6 +1403,20 @@ void gvApplication::buildGUI()
     hlayout->addWidget(ol, 0);
     vlayout->addItem(hlayout);
     //    vlayout->activate();
+}
+
+
+//===========================================================================
+void gvApplication::changePointSize(double new_size)
+//===========================================================================
+{
+    for (int i = 0; i < data_.numObjects(); ++i)
+	if (data_.getSelectedStateObject(i)) {
+	    gvPointCloudPaintable* paintable =
+                dynamic_cast<gvPointCloudPaintable*>(data_.paintable(i).get());
+	    if (paintable != 0)
+                paintable->setPointSize(new_size);
+        }
 }
 
 //===========================================================================
