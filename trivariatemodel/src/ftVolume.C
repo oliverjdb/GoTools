@@ -11087,7 +11087,6 @@ std::vector<double> ftVolume::evaluateMaterialDistribution(double upar, double v
   Point pt;
   if (mat_dist_.get() != NULL) {
     mat_dist_->point(pt,upar,vpar,wpar);
-    pt.normalize(); // should be normalized by definition
     return std::vector<double>(pt.begin(),pt.end());
   }
   else { 

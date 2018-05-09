@@ -13,11 +13,17 @@ using namespace std::chrono;
 
 enum MaterialMixType{BLENDING, DITHERING}; 
 
-int main() {
 
+int main( int argc, char* argv[] ) {
   // Reading ftVolume
   //string geomfile = "data/pct12108_fem_1couple_model_0_simplified_trim3.g22";
-  const char* ifile = "../tessellation/data/nugear_vol_model_with_mat.g22";
+  if (argc < 3 )
+    {
+      cerr << "Usage:  " << argv[0] << " input_volume_model_file.g22 output_prefix (slice id and \".png\" will be appended)" << endl;
+      return 1;
+    }
+
+  const char* ifile = argv[1];
   VolumeModelFileHandler fh;
   shared_ptr<VolumeModel> vm = fh.readVolumeModel(ifile);
 
@@ -26,8 +32,8 @@ int main() {
   MaterialMixType mix_type = DITHERING;
  
   BoundingBox bb = vm->boundingBox();
-  cout << bb << endl;
-
+  cerr << bb << endl;
+ 
   // Random number generator for dithering
   std::uniform_real_distribution<double> ran(0.0, 1.0);
   std::default_random_engine dom;
@@ -42,13 +48,13 @@ int main() {
   Point vgstep = bb.high()-bb.low();
 
 #if 1 //GEO_RES_SPECIFIED
-  double res_factor = 10; // used to speed up for debugging
+  double res_factor = 1; // used to speed up for debugging
   stepx = 0.04233*res_factor; // Stratasys specs
   stepy = 0.08466*res_factor; // Stratasys specs
   layerstep = 0.027*res_factor; // Stratasys specs
-  layerres = (unsigned int) (bb.high()[print_dir]-bb.low()[print_dir]) / layerstep;
-  resx = (unsigned int) (bb.high()[(print_dir+1)%3]-bb.low()[(print_dir+1)%3]) / stepx;
-  resy = (unsigned int) (bb.high()[(print_dir+2)%3]-bb.low()[(print_dir+2)%3]) / stepy;
+  layerres = (unsigned int) ceil((bb.high()[print_dir]-bb.low()[print_dir]) / layerstep) + 2;
+  resx = (unsigned int) ceil((bb.high()[(print_dir+1)%3]-bb.low()[(print_dir+1)%3]) / stepx) + 2;
+  resy = (unsigned int) ceil((bb.high()[(print_dir+2)%3]-bb.low()[(print_dir+2)%3]) / stepy) + 2;
   vgstep[(print_dir+1)%3] = stepx;
   vgstep[(print_dir+2)%3] = stepy;
 #else
@@ -62,16 +68,16 @@ int main() {
   vgstep[(print_dir+2)%3] /= resy;
 #endif
   vgstep[(print_dir)%3] = layerstep;
-  
-  cout << "\nStep size: "  << vgstep << "\n" << endl;
-  cout << "\nSlice resolution: " << resx << " x " << resy << "\n" << endl;
-  cout << "\nNumber of layers: " << layerres << "\n" << endl;
+ 
+  cerr << "\nStep size: "  << vgstep << "\n" << endl;
+  cerr << "\nSlice resolution: " << resx << " x " << resy << "\n" << endl;
+  cerr << "\nNumber of layers: " << layerres << "\n" << endl;
 
   // Initialize starting point 
-  Point vglow(3), low = bb.low();
-  vglow[0] = low[0] + vgstep[0]*0.5;
-  vglow[1] = low[1] + vgstep[1]*0.5;
-  vglow[2] = low[2] + vgstep[2]*0.5;
+  Point vglow(3);
+  vglow[0] = bb.low()[0] - vgstep[0]*0.5;
+  vglow[1] = bb.low()[1] - vgstep[1]*0.5;
+  vglow[2] = bb.low()[2] - vgstep[2]*0.5;
  
   // Image container
   std::vector<unsigned char> im(resx*resy*4);
@@ -80,16 +86,20 @@ int main() {
 
   double eps = 1.0e-8;
 
+  cout << resx << " " << resy << " " << layerres << "\n";
+
   // Loop through layers
   for (int iz=0;iz!=layerres;++iz) {
     chrono::high_resolution_clock::time_point layerin = high_resolution_clock::now();
-    cout << "Start layer" << endl;
+    high_resolution_clock::time_point clpin, clpout;
+    double clptotal = 0.0;
+    cerr << "Start layer " << iz << endl;
     // Set output filename
     stringstream ss;
     ss << iz; //setfill('0') << setw(4) << iz;
-    string slayername = string("GearResLayer_tmp")+ss.str()+string(".png");
+    string slayername = string(argv[2])+ss.str()+string(".png");
     const char* layername = slayername.c_str();
-    cout << layername << endl;
+    cerr << layername << endl;
     unsigned error = lodepng::encode(layername, im, resx, resy);
     // Loop through pixels
     for (int iy=0;iy<resy;++iy) {
@@ -99,16 +109,18 @@ int main() {
         if      (print_dir == 2) vpt = vglow+Point(ix*vgstep[0],iy*vgstep[1],iz*vgstep[2]);
         else if (print_dir == 1) vpt = vglow+Point(iy*vgstep[0],iz*vgstep[1],ix*vgstep[2]);
         else if (print_dir == 0) vpt = vglow+Point(iz*vgstep[0],ix*vgstep[1],iy*vgstep[2]);
-        //cout << iz << " " << ix << " " << iy << "\n";
+        //cerr << iz << " " << ix << " " << iy << "\n";
         Point clpt;
         int clpidx; 
 
-//cout << "Seed " << last_ix[iy*resx+ix] << " " << last_uvw[3*(iy*resx+ix)] << endl;
-//high_resolution_clock::time_point clpin = high_resolution_clock::now();
+//cerr << "Seed " << last_ix[iy*resx+ix] << " " << last_uvw[3*(iy*resx+ix)] << endl;
+        clpin = high_resolution_clock::now();
         vm->closestPoint(vpt,clpidx,u,v,w,clpt,d,eps,last_ix[iy*resx+ix],&(last_uvw[3*(iy*resx+ix)])); 
-//high_resolution_clock::time_point clpout = high_resolution_clock::now();
-//if (clpidx == last_ix[iy*resx+ix]) cout << "Good seed:" << duration_cast<duration<double>>(clpout-clpin).count() << endl;
-//else cout << "Bad seed: " << duration_cast<duration<double>>(clpout-clpin).count() << endl;
+        clpout = high_resolution_clock::now();
+        clptotal += duration_cast<duration<double>>(clpout-clpin).count();
+
+//if (clpidx == last_ix[iy*resx+ix]) cerr << "Good seed:" << duration_cast<duration<double>>(clpout-clpin).count() << endl;
+//else cerr << "Bad seed: " << duration_cast<duration<double>>(clpout-clpin).count() << endl;
         last_ix[iy*resx+ix] = clpidx;
         last_uvw[3*(iy*resx+ix)] = u;
         last_uvw[3*(iy*resx+ix)+1] = v;
@@ -120,34 +132,37 @@ int main() {
         im[4*resx*iy+4*ix+3] = 255;
         
         if (fabs(d) < eps && clpidx != -1) {
+           //cout << "1\n"; 
            shared_ptr<ftVolume> testVolume = vm->getBody(clpidx);  
            vector<double> mpt = testVolume->evaluateMaterialDistribution(u,v,w);
            if (mix_type == DITHERING) {
              double random = ran(dom);
-             if (mpt.size() > 0 && random < mpt[0] )                   im[4*resx*iy+4*ix+0] = (unsigned char) (255);
-             else if (mpt.size() > 1 && random < mpt[0]+mpt[1])        im[4*resx*iy+4*ix+1] = (unsigned char) (255);
+             if (mpt.size() > 0 && random < mpt[0] ) {                  im[4*resx*iy+4*ix+0] = (unsigned char) (255); cout << "1.0\n";}
+             else if (mpt.size() > 1 && random < mpt[0]+mpt[1]) {       im[4*resx*iy+4*ix+1] = (unsigned char) (255); cout << "0.5\n";}
              else if (mpt.size() > 2 && random < mpt[0]+mpt[1]+mpt[2]) im[4*resx*iy+4*ix+2] = (unsigned char) (255);
            }
            else if (mix_type == BLENDING) {
-             //cout << "BLENDING" << endl;
              if (mpt.size() > 0) im[4*resx*iy+4*ix+0] = (unsigned char) (255*mpt[0]);
              if (mpt.size() > 1) im[4*resx*iy+4*ix+1] = (unsigned char) (255*mpt[1]);
              if (mpt.size() > 2) im[4*resx*iy+4*ix+2] = (unsigned char) (255*mpt[2]);
-             //cout << (int) im[4*resx*iy+4*ix+0] << " ";
+             //cerr << (int) im[4*resx*iy+4*ix+0] << " ";
            } 
            else {
              std::cerr << "MaterialMixType not defined\n"; 
              return -1;
            }
-           //if (mpt[0] < 0.2 ) cout << "O";
-           //else cout << "X";
+           //if (mpt[0] < 0.2 ) cerr << "O";
+           //else cerr << "X";
         }
+        else {cout << "0\n"; }
       } 
-      //cout << endl;
+      //cerr << endl;
     }
-    cout << im.size() << endl;
+    cerr << im.size() << endl;
+
+    cerr << "Total time spent on closest point: " << clptotal << endl;
     high_resolution_clock::time_point layerout = high_resolution_clock::now();  
-    cout << "endlayer" << iz  << " "  << duration_cast<duration<double>>(layerout-layerin).count() << "s" << endl;
+    cerr << "End layer " << iz << " "  << duration_cast<duration<double>>(layerout-layerin).count() << "s" << endl;
   }
  
   return 0;
