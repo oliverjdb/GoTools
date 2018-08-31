@@ -709,9 +709,14 @@ CurveCreators::liftParameterCurve(shared_ptr<ParamCurve>& parameter_cv,
       }
     HermiteAppC approximator(lift_crv.get(),
 			     &initpars[0], (int)initpars.size(),
-			       epsge, epsge); // Using iput epsge for both geom and kink tol.
+			       epsge, epsge); // Using input epsge for both geom and kink tol.
     approximator.refineApproximation();
     shared_ptr<SplineCurve> lifted_cv = approximator.getCurve();
+
+    if (!lifted_cv)
+    {
+        return nullptr;
+    }
 
 #if _MSC_VER > 0 && _MSC_VER < 1300
     return dynamic_cast<SplineCurve*>(lifted_cv->clone());

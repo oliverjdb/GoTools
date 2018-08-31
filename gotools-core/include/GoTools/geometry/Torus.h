@@ -237,6 +237,12 @@ public:
     virtual void setParameterBounds(double from_upar, double from_vpar,
 				    double to_upar, double to_vpar);
 
+    /// Fetch parameter bounds. NB! Not oriented
+    virtual RectDomain getParameterBounds() const
+    {
+      return parbound_;
+    }
+
     /// set the parameter domain to a given rectangle
     /// \param u1 new min. value of first parameter span
     /// \param u2 new max. value of first parameter span
@@ -254,6 +260,9 @@ public:
 
     /// Create a SplineSurface representation of the Torus.
     virtual SplineSurface*  createSplineSurface() const;
+
+     /// Create an approximating non-rational spline surface from the surface
+    virtual SplineSurface* createNonRationalSpline(double eps) const;
 
     /// Get the major circle for a given v parameter.
     /// \param vpar v parameter
@@ -285,6 +294,8 @@ public:
     }
 
     virtual void enlarge(double len1, double len2, double len3, double len4);
+
+    virtual void translate(const Point& vec);
 
 protected:
 

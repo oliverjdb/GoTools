@@ -134,6 +134,23 @@ void SplineSurface::write (std::ostream& os) const
 
 
 //===========================================================================
+SplineSurface* SplineSurface::clone() const
+//===========================================================================
+{
+  SplineSurface *surf = new SplineSurface(basis_u_, basis_v_, 
+					  rational_ ? rcoefs_.begin() : coefs_.begin(),
+					  dim_, rational_);
+ 
+  if (elementary_surface_.get())
+    {
+      shared_ptr<ElementarySurface> elem(elementary_surface_->clone());
+      surf->setElementarySurface(elem);
+    }
+
+  return surf;
+}
+
+//===========================================================================
 BoundingBox SplineSurface::boundingBox() const
 //===========================================================================
 {
@@ -1072,6 +1089,9 @@ void SplineSurface::swapParameterDirection()
 	std::swap(degen_.b_, degen_.l_);
 	std::swap(degen_.t_, degen_.r_);
     }
+
+    if (elementary_surface_.get())
+      elementary_surface_->swapParameterDirection();
     // @@ Maybe we should do something about the spatial boundary?
 }
 
@@ -1117,6 +1137,9 @@ void SplineSurface::setParameterDomain(double u1, double u2,
   Vector2D ll(basis_u_.startparam(), basis_v_.startparam());
   Vector2D ur(basis_u_.endparam(), basis_v_.endparam());
   domain_ = RectDomain(ll, ur);
+
+  if (elementary_surface_.get())
+    elementary_surface_->setParameterDomain(u1, u2, v1, v2);
 } 
 
 //===========================================================================
@@ -1655,6 +1678,11 @@ double SplineSurface::appendSurface(ParamSurface* sf, int join_dir,
     joined_sf = GeometryTools::representCurveAsSurface(*curves[0], join_dir, common_bas, 
 					rational() || make_rational);
 
+    // The elementary surface information is no longer correct
+    is_elementary_surface_ = false;
+    if (elementary_surface_.get())
+      elementary_surface_.reset();
+    
     *this = *joined_sf;
     return 0.5*max_wgt_diff;
 }
@@ -1785,6 +1813,8 @@ void SplineSurface::swap(SplineSurface& other)
     std::swap(domain_, other.domain_);
     spatial_boundary_.swap(other.spatial_boundary_);
     std::swap(degen_, other.degen_);
+    std::swap(is_elementary_surface_, other.is_elementary_surface_);
+    std::swap(elementary_surface_, other.elementary_surface_);
 }
 
 //===========================================================================
@@ -2006,7 +2036,7 @@ double SplineSurface::setAvBdWeight(double wgt, int pardir, bool at_start)
   int kn2 = numCoefs_v();
   double avwgt = 0.0;
   double maxwgt = 0.0;
-  double minwgt = HUGE;
+  double minwgt = std::numeric_limits<double>::max();
   int ki;
   if (pardir == 0)
     {
@@ -2165,9 +2195,13 @@ void SplineSurface::enlarge(double len, bool in_u, bool at_end)
     swapParameterDirection();
     return;
   } else if (!at_end) {
+    double startpar = startparam_v();
+    double endpar = endparam_v();
     reverseParameterDirection(false);
     enlarge(len, false, true);
     reverseParameterDirection(false);
+    double del = endparam_v() - endpar;
+    setParameterDomain(startparam_u(), endparam_u(), startpar-del, endpar);
     return;
   }
 

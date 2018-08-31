@@ -895,8 +895,8 @@ void Cone::getDegenerateParam(double& par, int& dir) const
   else
     {
       par = -radius_/ang_tan;
-      par = domain_.umin() +
-	(par - parbound_.umin())*(domain_.umax()-domain_.umin())/(parbound_.umax()-parbound_.umin());
+      par = domain_.vmin() +
+	(par - parbound_.vmin())*(domain_.vmax()-domain_.vmin())/(parbound_.vmax()-parbound_.vmin());
       dir = (isSwapped()) ? 1 : 2;
     }
 }
@@ -1054,6 +1054,33 @@ void Cone::setParameterDomain(double startpar_u, double endpar_u,
   domain_ = RectDomain(ll, ur);
 }
 
+//===========================================================================
+void Cone::restrictParameterDomain(double startpar_u, double endpar_u, 
+				   double startpar_v, double endpar_v)
+//===========================================================================
+{
+  getOrientedParameters(startpar_u, startpar_v);
+  getOrientedParameters(endpar_u, endpar_v);
+  startpar_u = parbound_.umin() + 
+    (startpar_u-domain_.umin())*(parbound_.umax()-parbound_.umin())/(domain_.umax()-domain_.umin());
+  endpar_u = parbound_.umin() + 
+    (endpar_u-domain_.umin())*(parbound_.umax()-parbound_.umin())/(domain_.umax()-domain_.umin());
+  if (isBounded())
+    {
+      startpar_v = parbound_.vmin() + 
+	(startpar_v-domain_.vmin())*(parbound_.vmax()-parbound_.vmin())/(domain_.vmax()-domain_.vmin());
+      endpar_v = parbound_.vmin() + 
+	(endpar_v-domain_.vmin())*(parbound_.vmax()-parbound_.vmin())/(domain_.vmax()-domain_.vmin());
+    }
+
+  if (isSwapped())
+    {
+      std::swap(startpar_u, startpar_v);
+      std::swap(endpar_u, endpar_v);
+    }
+  
+  setParameterBounds(startpar_u, startpar_v, endpar_u, endpar_v);
+}
 
 //===========================================================================
 bool Cone::isBounded() const
@@ -1238,6 +1265,50 @@ SplineSurface* Cone::createSplineSurface() const
     return subpatch;
 }
 
+//===========================================================================
+SplineSurface* Cone::createNonRationalSpline(double eps) const
+//===========================================================================
+{
+  if (!isBounded())
+    {
+      MESSAGE("createNonRationalSpline is not implemented in the unbounded case");
+      return NULL;
+    }
+
+  // First fetch the circular boundary curves
+  shared_ptr<Circle> circ1 = getCircle(domain_.vmin());
+  shared_ptr<Circle> circ2 = getCircle(domain_.vmax());
+
+  // Get Spline approximation
+  shared_ptr<SplineCurve> crv1(circ1->createNonRationalSpline(eps));
+  shared_ptr<SplineCurve> crv2(circ2->createNonRationalSpline(eps));
+
+  // Interpolate curves
+  // This is a hack because GoTools lacks proper lofting functionality
+  // for surfaces
+  double knot_diff_tol = 1.0e-8; 
+  vector<shared_ptr<SplineCurve> > bd_cvs(2);
+  bd_cvs[0] = crv1;
+  bd_cvs[1] = crv2;
+  GeometryTools::unifyCurveSplineSpace(bd_cvs, knot_diff_tol);
+  vector<double> coefs;
+  coefs.insert(coefs.end(), crv1->coefs_begin(), crv1->coefs_end());
+  coefs.insert(coefs.end(), crv2->coefs_begin(), crv2->coefs_end());
+  vector<double> knots2(4);
+  knots2[0] = knots2[1] = domain_.vmin();
+  knots2[2] = knots2[3] = domain_.vmax();
+  SplineSurface *surf = new SplineSurface(crv1->numCoefs(), 2,
+					  crv1->order(), 2,
+					  crv1->knotsBegin(),
+					  knots2.begin(), 
+					  coefs.begin(),
+					  crv1->dimension());
+
+  if (isSwapped())
+    surf->swapParameterDirection();
+
+  return surf;
+}
 
 //===========================================================================
 shared_ptr<Line> Cone::getLine(double upar) const 
@@ -1471,6 +1542,13 @@ double Cone::radius(double u, double v) const
       v1 = std::max(v1, -h);
     }
   setParameterBounds(u1, v1, u2, v2);
+}
+
+//===========================================================================
+  void Cone::translate(const Point& vec)
+//===========================================================================
+{
+  location_ += vec;
 }
 
 } // namespace Go

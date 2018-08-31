@@ -211,12 +211,25 @@ public:
     /// direction.
     virtual void setParamBoundsV(double from_vpar, double to_vpar);
 
+    /// Fetch parameter bounds. NB! Not oriented
+    virtual RectDomain getParameterBounds() const
+    {
+      return parbound_;
+    }
+
     /// set the parameter domain to a given rectangle
     /// \param u1 new min. value of first parameter span
     /// \param u2 new max. value of first parameter span
     /// \param v1 new min. value of second parameter span
     /// \param v2 new max. value of second parameter span
     virtual void setParameterDomain(double u1, double u2, double v1, double v2);
+
+    /// restrict the surface to have the following parameter domain
+    /// \param u1 new min. value of first parameter span
+    /// \param u2 new max. value of first parameter span
+    /// \param v1 new min. value of second parameter span
+    /// \param v2 new max. value of second parameter span
+    void restrictParameterDomain(double u1, double u2, double v1, double v2);
 
    /// Query if parametrization is bounded. Only the \a v parameter
     /// direction is queried. The \a u parameter is always bounded.
@@ -236,6 +249,9 @@ public:
 
     /// Create a SplineSurface representation of the cone.
     virtual SplineSurface*  createSplineSurface() const;
+
+    /// Create an approximating non-rational spline surface from the surface
+    virtual SplineSurface* createNonRationalSpline(double eps) const;
 
     shared_ptr<Line> getLine(double upar) const; 
 
@@ -269,6 +285,8 @@ public:
     }
 
     virtual void enlarge(double len1, double len2, double len3, double len4);
+
+    virtual void translate(const Point& vec);
 
 protected:
 

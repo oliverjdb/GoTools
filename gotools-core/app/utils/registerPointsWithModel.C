@@ -593,7 +593,14 @@ void write_transformed_points_signed_dists(const vector<float>& input_points,
 					   const transformation_type& transformation,
 					   std::ofstream& fileout)
 {
-    const int num_pts = signed_dists.size();
+    const int dim = 3;
+    const int num_pts = input_points.size()/dim;
+    const int result_size = signed_dists.size()/num_pts;
+    std::cout << "result_size: " << result_size << std::endl;
+    if (result_size != 1)
+    {
+        MESSAGE("Warning: Result includes more than just the signed distances. Sf index and params may be included.");
+    }
     fileout << "ply\n";
     fileout << "format ascii 1.0\n";
     fileout << "element vertex " << num_pts << "\n";
@@ -602,11 +609,11 @@ void write_transformed_points_signed_dists(const vector<float>& input_points,
     fileout << "property float z\n";
     fileout << "property float signed_distance\n";
     fileout << "end_header\n";
-
+    vector<double> all_transf_pts;
+    all_transf_pts.reserve(num_pts*dim);
     vector<vector<double> > rotation = transformation.first;
     Point translation = transformation.second;
-    const int dim = 3;
-    for (int i = 0; i < signed_dists.size(); ++i)
+    for (int i = 0; i < num_pts; ++i)
     {
 	vector<double> transf_pt(translation.begin(), translation.end());
 	for (int j = 0; j < dim; ++j)
@@ -615,11 +622,28 @@ void write_transformed_points_signed_dists(const vector<float>& input_points,
 	    {
 		transf_pt[j] += rotation[j][k] * input_points[i*dim + k];
 	    }
-	}
+        }
+        all_transf_pts.insert(all_transf_pts.end(), transf_pt.begin(), transf_pt.end());
       // 	}
 //	fileout << sqrt(sum2) << endl;
-	fileout << transf_pt[0] << " " << transf_pt[1] << " " << transf_pt[2] << " " << signed_dists[i] << "\n";
+        if (result_size == 1)
+        {
+            fileout << transf_pt[0] << " " << transf_pt[1] << " " << transf_pt[2] << " " << signed_dists[i] << "\n";
+        }
+        else if (result_size == 4)
+        {
+            fileout << transf_pt[0] << " " << transf_pt[1] << " " << transf_pt[2] << " " << signed_dists[4*i] << " " <<
+               signed_dists[4*i+1] << " " << signed_dists[4*i+2] << " " << signed_dists[4*i+3] << "\n";
+        }
     }
+
+#if 0
+    Go::PointCloud3D pc_3d(all_transf_pts.begin(), num_pts);
+    std::ofstream fileout_pc("tmp/transf_pts.g2");
+    pc_3d.writeStandardHeader(fileout_pc);
+    pc_3d.write(fileout_pc);
+#endif
+
 }
 
 
@@ -847,6 +871,8 @@ int main( int argc, char* argv[] )
   ifstream in_transf(argv[3]);
   ofstream of_result(argv[4]); // Using the ply format.
 
+  const bool include_sf_and_params = false;
+
 #if 0
 //  ofstream of_result(argv[4]); // Line #1-#3: Rotation. #4: Translation. #5: # pts. #6: Signed dist 1st pt. #7: Signed dist 2nd ...
   ofstream of_status(argv[5]); // An integer in the set {0, ..., 100}, an estimated percentage of how much work is done.
@@ -979,7 +1005,16 @@ int main( int argc, char* argv[] )
 #endif
 
   double ts = getCurrentTime();
-  shared_ptr<boxStructuring::BoundingBoxStructure> structure = preProcessClosestVectors(surfaces, 200.0);//, &of_status_filename);
+  shared_ptr<boxStructuring::BoundingBoxStructure> structure;
+  try
+  {
+      structure = preProcessClosestVectors(surfaces, 200.0);//, &of_status_filename);
+  }
+  catch (...)
+  {
+      std::cout << "Failed preprocessing the surfaces!" << std::endl;
+      return 1;
+  }
   double te = getCurrentTime();
 //  std::cout << "DEBUG: Done with the preprocessing, time spent: " << te - ts << std::endl; 
 
@@ -1151,8 +1186,19 @@ int main( int argc, char* argv[] )
 #else
   double t0 = getCurrentTime();
 //  std::cout << "DEBUG: Calculating the signed distance." << std::endl; 
-  vector<float> signed_dists = closestSignedDistances(pts, structure,
-						      currentTransformation.first, currentTransformation.second);//,
+
+  vector<float> signed_dists;
+  if (include_sf_and_params)
+  {
+      signed_dists = closestSignedDistanceSfParams(pts, structure,
+                                                   currentTransformation.first, currentTransformation.second);//,
+  }
+  else
+  {
+      signed_dists = closestSignedDistances(pts, structure,
+          currentTransformation.first, currentTransformation.second);//,
+  }
+
   //reg_upd.get());
   double t1 = getCurrentTime();
 //  std::cout << "DEBUG: Done calculating the signed distance, time spent: " << t1 - t0 << std::endl; 

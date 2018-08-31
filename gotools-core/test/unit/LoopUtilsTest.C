@@ -37,56 +37,72 @@
  * written agreement between you and SINTEF ICT. 
  */
 
-#ifndef _MODIFYFACESET_H
-#define _MODIFYFACESET_H
 
-namespace Go {
+#define BOOST_TEST_MODULE gotools-core/LoopUtilsTest
+#include <boost/test/included/unit_test.hpp>
 
-  class ftEdge;
-  class Vertex;
-  class ftSurface;
-
-  /// Split a face set to simplify the input to trivariate block structuring
-  /// Currently: Split in sharp concave edges. Only on special configuration 
-  /// is handled
-
-class ModifyFaceSet
-{
- public:
-
-   /// Constructor
-  ModifyFaceSet(shared_ptr<SurfaceModel> model);
-
-  /// Destructor
-  ~ModifyFaceSet();
-
-  /// Identify a surface to use in a Boolean operation to
-  /// split the model
-  void
-    getSplittingSurface(std::vector<shared_ptr<ParamSurface> >& split_sfs,
-			std::vector<ftSurface*>& corr_faces,
-			std::vector<std::vector<ftEdge*> >& edges);
-
-  /// Return the resulting face set as a surface model
-  shared_ptr<SurfaceModel> getModifiedModel(int& nmb);
+#include <fstream>
+#include "GoTools/geometry/LoopUtils.h"
+#include "GoTools/geometry/BoundedSurface.h"
+#include "GoTools/geometry/ObjectHeader.h"
+#include "GoTools/geometry/GoTools.h"
 
 
- private:
-  shared_ptr<SurfaceModel> model_;
+using namespace Go;
+using std::vector;
+using std::string;
+using std::ifstream;
 
-    // Perform division
-  int divide();
 
-  std::vector<ftEdge*> fetchSharpEdges();
+struct Config {
+public:
+    Config()
+    {
 
-  ftSurface*  fetchNextFace(ftEdge* edge, Vertex* vx, double angtol,
-			    ftEdge*& next_edge, double& angle);
+        datadir = "data/"; // Relative to build/gotools-core
 
-  void addPrioritizedVertex(shared_ptr<ftSurface> face,
-			    shared_ptr<Vertex> vx,
-			    std::vector<shared_ptr<Vertex> >& vx_pri);
+        //infiles.push_back(datadir + "bd_plane_many_holes.g2");
+        infiles.push_back(datadir + "trimmed_sphere_deg_seg.g2");
+        infiles.push_back(datadir + "trimmed_sphere_no_deg_seg.g2");
+
+        GoTools::init();
+    }
+
+public:
+    ObjectHeader header;
+    string datadir;
+    vector<string> infiles;
+    vector<int> numobjects;
+
 };
 
-}  // namespace Go
 
-#endif // _MODIFYFACESET_H
+BOOST_FIXTURE_TEST_CASE(LoopUtilsTest, Config)
+{
+    for (auto infile : infiles)
+    {
+        ifstream in1(infile.c_str());
+        shared_ptr<BoundedSurface> bd_sf(new BoundedSurface());
+        header.read(in1);
+        bd_sf->read(in1);
+
+        int valid_state = -1;
+        bool valid = bd_sf->isValid(valid_state);
+
+        BOOST_CHECK_EQUAL(valid, true);
+
+        // The input surface has 1 outer loop only.
+        vector<CurveLoop> bd_loops = bd_sf->allBoundaryLoops();
+        int cntr = 0;
+        for (auto bd_loop : bd_loops)
+        {
+            // The loop is ccw.
+            const double int_tol = 1.0e-03;
+            bool ccw = LoopUtils::loopIsCCW(bd_loop, int_tol);
+            std::cout << "LoopUtilsTest.C: ccw: " << ccw << std::endl;
+            bool ccw_true = (cntr == 0);
+            BOOST_CHECK_EQUAL(ccw, ccw_true);
+            ++cntr;
+        }
+    }
+}

@@ -95,9 +95,6 @@ public:
     /// the responsibility of the caller.
     virtual SplineSurface* asSplineSurface();
 
-    /// Return the spline surface associated to this surface, if any
-    virtual SplineSurface* getSplineSurface();
-
     /// Return associated elementary surface, if any
     virtual ElementarySurface* elementarySurface()
     {
@@ -383,6 +380,26 @@ public:
     shared_ptr<ParamSurface> baseSurface()
     { return surface_; }
 
+    double getDistance()
+    {
+        return offset_dist_;
+    }
+
+    bool selfIntersect()
+    {
+        return self_int_;
+    }
+
+    double getEps()
+    {
+      return epsgeo_;
+    }
+
+    void setEps(double epsgeo)
+    {
+      epsgeo_ = epsgeo;
+    }
+
  protected:
 
     shared_ptr<ParamSurface> surface_;
@@ -395,6 +412,8 @@ public:
     shared_ptr<SplineSurface> offset_surface_;
 
     void createOffsetOuterBdLoop();
+
+    void createOffsetSplineSurface();
     
 };
 

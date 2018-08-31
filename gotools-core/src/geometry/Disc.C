@@ -603,6 +603,14 @@ SplineSurface* Disc::createSplineSurface() const
 }
 
 //===========================================================================
+SplineSurface* Disc::createNonRationalSpline(double eps) const
+//===========================================================================
+{
+  MESSAGE("createNonRationalSpline() is not implemented.");
+  return NULL;
+}
+
+//===========================================================================
 void Disc::setParameterBounds(double from_upar, double from_vpar,
 			      double to_upar, double to_vpar)
 //===========================================================================
@@ -755,6 +763,13 @@ void Disc::setParameterDomain(double startpar_u, double endpar_u,
 	}
      }
   setParameterBounds(u1, v1, u2, v2);
+}
+
+//===========================================================================
+  void Disc::translate(const Point& vec)
+//===========================================================================
+{
+  centre_ += vec;
 }
 
 
