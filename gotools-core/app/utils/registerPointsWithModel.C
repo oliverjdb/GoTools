@@ -870,6 +870,8 @@ int main( int argc, char* argv[] )
       return 1;
     }
 
+  std::cout << "Starting GoTools registration" << std::endl;
+
 #if _OPENMP
   std::cout << "Max available threads = " << omp_get_max_threads() << std::endl;
 #endif
